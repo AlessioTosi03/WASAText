@@ -2,7 +2,7 @@ openapi: 3.0.3
 servers:
   - url: "http://localhost:3000"
 info:
-  title: WASAPhoto
+  title: WASAText
   description: Fantastic Coffee (decaffeinated), the skeleton project for Web and Software architecture course
   version: 1.0.0
 
@@ -22,52 +22,102 @@ components:
         title: { type: string }
         message: { type: string }
         url: { type: string }
-    Picture:
-      title: picture
-      description: "This object represents a single photo."
+    Conversation:
+      title: conversation
+      description: "This object represents a single conversation."
       type: object
       properties:
         id:
-          description: Unique picture identifier.
+          description: Unique identifier.
           type: integer
           example: 1
           readOnly: true
-        likeCounter:
-          description: Counter for this picture likes.
-          type: integer
-          example: 1
-          readOnly: true
-    Comment:
-      title: comment
-      description: "This object represents a single comment."
+        messages:
+          type: array
+          items: { $ref: '#/components/schemas/Message' }
+        details:
+            oneOf:
+              - $ref: '#/components/schemas/Chat'
+              - $ref: '#/components/schemas/Group'
+    Group:
+      allOf:
+        - $ref: "#/components/schemas/Conversation"
+        - type: object
+          properties:
+            name:
+              description: name of the group.
+              type: string
+              example: the koalas
+            description:
+              description: "the description of the group."
+              type: string
+            groupPicURL:
+              type: string
+              format: uri
+            participants:
+              description: the list of the group participants
+              type: array
+              items: { $ref: "#/components/schemas/User" }
+    Chat:
+      allOf:
+        - $ref: "#/components/schemas/Conversation"
+        - type: object
+          properties:
+            chatters:
+              type: array
+              minItems: 2
+              maxItems: 2
+              items: { $ref: "#/components/schemas/User" }
+    Message:
+      title: message
+      description: "This object represents a single message."
       type: object
       properties:
         id:
-          description: Unique comment identifier.
+          description: Unique message identifier.
           type: integer
           example: 1
           readOnly: true
-        pictureID:
-          type: integer
-          description: ID of the commented photo.
-        userID:
-          type: integer
-          description: ID of the commenter.
-        text:
-          description: Comment text.
+        content:
+          description: Content of this message, photo or text.
+          oneOf:
+            - type: string
+              description: a text message.
+            - type: string
+              format: binary
+              description: a photo message.
+        received:
+          description: list of the people that have received the message.
+          type: array
+          items: 
+            - $ref: "#/components/schemas/User"
+        read:
+          description: list of the people that have read the message.
+          type: array
+          items: 
+            - $ref: "#/components/schemas/User"
+    ForwardMessage:
+      type: object
+      properties:
+        originalMessageID:
           type: string
-          example: Comment here
-      required: [id, pictureID, userID, text]
-    Like:
-      title: like
-      description: "This object represents a single like."
+          description: The ID of the message being forwarded.
+    Reaction:
+      title: reaction
+      description: "This object represents a single reaction."
       type: object
       properties:
-        pictureID:
+        messageID:
           type: integer
+          description: ID of the reacted message.
         userID:
           type: integer
-      required: [pictureID, userID]
+          description: ID of the reacter.
+        text:
+          description: emoji Unicode.
+          type: string
+          example: "🙂"
+      required: [pictureID, userID, text]
     User:
       title: user
       description: "This object represents a single user."
@@ -82,29 +132,9 @@ components:
           description: name of the user.
           type: string
           example: andre23Z
-    FollowRelation:
-      title: follow relation
-      description: "This object stores follow relations between users."
-      type: object
-      properties:
-        followingID:
-          description: "The one who follows"
+        profilePicURL:
           type: string
-        followedID:
-          description: "The one being followed"
-          type: string
-    BanRelation:
-      title: ban relation
-      description: "This object represents the ban relations between users."
-      type: object
-      properties:
-        banningID:
-          description: The one who bans
-          type: string
-        bannedID:
-          description: the one being banned
-          type: string
-
+          format: uri
   responses:
     Unauthorized:
       description: The access token is missing or it's expired
@@ -120,14 +150,6 @@ components:
       bearerFormat: JWT # optional, arbitrary value for documentation purposes
 
   parameters:
-    Authorization:
-      name: Authorization
-      in: header
-      required: true
-      schema:
-        type: string
-        example: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
-      description: Bearer token for authentication
     XAppVersion:
       schema:
         type: string
@@ -166,15 +188,15 @@ components:
       required: true
       description: App operating system / platform
       allowEmptyValue: false
-    PictureID:
+    MessageID:
       schema:
         type: integer
         example: 1
         readOnly: true
-      name: pictureId
+      name: messageId
       in: path
       required: true
-      description: Picture identifier.
+      description: Message identifier.
       allowEmptyValue: false
     UserID:
       schema:
@@ -186,15 +208,15 @@ components:
       required: true
       description: Unique identifier for a user.
       allowEmptyValue: false
-    CommentID:
+    ConversationID:
       schema:
         type: integer
         example: 27
         readOnly: true
-      name: commentId
+      name: conversationId
       in: path
       required: true
-      description: Unique identifier for a comment.
+      description: Unique identifier for a conversation.
       allowEmptyValue: false
       
 paths:
@@ -244,6 +266,7 @@ paths:
         and an identifier is returned.
         If the user exists, the user identifier is returned.
       operationId: doLogin
+      security: []
       requestBody:
         description: User details
         content:
@@ -274,111 +297,13 @@ paths:
                   message:
                     type: string
                     example: "Login Successful"
-  /user/{userID}/:
+  /Users/{UserID}/name:
     parameters:
-      - $ref: '#/components/parameters/UserID'
-    get:
-      tags: ["Get services"]
-      operationId: getUserProfile
-      summary: Get an user profile
-      description: |-
-        Return the profile of a specific user.
-      responses:
-        "200":
-          description: Successful
-          content:
-            application/json:
-              schema: { $ref: "#/components/schemas/User" }
-        "400": { $ref: "#/components/responses/BadRequest" }
-        "404": { description: User not found }
-        "500": { $ref: "#/components/responses/InternalServerError" }
-  /user/{userID}/follow:
-    parameters:
-      - $ref: "#/components/parameters/Authorization"
-      - $ref: '#/components/parameters/UserID'
-    post:
-      tags: ["Follow profile"]
-      operationId: followUser
-      summary: Follow another user
-      description: |-
-        Example of a parameter in URL
-      security:
-        - BearerAuth: []
-      responses:
-        "200":
-          description: User followed successfully
-          content:
-            application/json:
-              schema: { $ref: "#/components/schemas/User" }
-        "400": { $ref: "#/components/responses/BadRequest" }
-        "404": { description: User not found }
-        "500": { $ref: "#/components/responses/InternalServerError" }
-    delete:
-      tags: ["Follow profile"]
-      operationId: unfollowUser
-      summary: Unfollow another user
-      description: |-
-        Example of a parameter in URL
-      security:
-        - BearerAuth: []
-      responses:
-        "200":
-          description: User unfollowed successfully
-          content:
-            application/json:
-              schema: { $ref: "#/components/schemas/User" }
-        "400": { $ref: "#/components/responses/BadRequest" }
-        "404": { description: User not found }
-        "500": { $ref: "#/components/responses/InternalServerError" }
-  /user/{userID}/ban:
-    parameters:
-      - $ref: "#/components/parameters/Authorization"
-      - $ref: '#/components/parameters/UserID'
-    post:
-      tags: ["Ban profile"]
-      operationId: banUser
-      summary: Ban another user
-      description: |-
-        Example of a parameter in URL
-      security:
-        - BearerAuth: []
-      responses:
-        "200":
-          description: User banned successfully
-          content:
-            application/json:
-              schema: { $ref: "#/components/schemas/User" }
-        "400": { $ref: "#/components/responses/BadRequest" }
-        "404": { description: User not found }
-        "500": { $ref: "#/components/responses/InternalServerError" }
-    delete:
-      tags: ["Ban profile"]
-      operationId: unbanUser
-      summary: Unban another user
-      description: |-
-        Example of a parameter in URL
-      security:
-        - BearerAuth: []
-      responses:
-        "200":
-          description: User unbanned successfully
-          content:
-            application/json:
-              schema: { $ref: "#/components/schemas/User" }
-        "400": { $ref: "#/components/responses/BadRequest" }
-        "404": { description: User not found }
-        "500": { $ref: "#/components/responses/InternalServerError" }
-  /user/{userID}/set-username:
-    parameters:
-      - $ref: "#/components/parameters/Authorization"
+      - $ref: "#/components/parameters/UserID"
     put:
-      tags: ["Manage profile"]
+      tags: ["Profile"]
       operationId: setMyUserName
       summary: Modify my Username
-      description: |-
-        Example of a parameter in URL
-      security:
-        - BearerAuth: []
       requestBody:
         description: New username to be set
         content:
@@ -402,221 +327,274 @@ paths:
         "400": { $ref: "#/components/responses/BadRequest" }
         "404": { description: User not found }
         "500": { $ref: "#/components/responses/InternalServerError" }
-      
-  /user/{userID}/pictures/:
+
+  /Users/{UserID}/photo:
     parameters:
-      - $ref: "#/components/parameters/Authorization"
-    post:
-      tags: ["Manage profile"]
-      operationId: uploadPhoto
-      summary: Upload a new photo
-      description: |-
-        Example of a parameter in URL
-      security:
-        - BearerAuth: []
+      - $ref: "#/components/parameters/UserID"
+    put:
+      tags: ["Profile"]
+      operationId: setMyPhoto
+      summary: Change my photo
       requestBody:
+        description: New photo to be set
         content:
-          image/png:
-            schema: { $ref: "#/components/schemas/Picture"}
+          application/json:
+            schema:
+              type: object
+              properties:
+                photo:
+                  type: string
+                  format: uri
+              required:
+                - photo
       responses:
         "200":
-          description: Student picture found
-          content:
-            image/png:
-              schema:
-                type: string
-                format: binary
-              example: Picture binary file
-        "404":
-          description: Student picture not found
-        "500": { $ref: "#/components/responses/InternalServerError" }
-  /user/{userID}/pictures/{pictureID}:
-    parameters:
-      - $ref: "#/components/parameters/XAppBuild"
-      - $ref: "#/components/parameters/XAppVersion"
-      - $ref: "#/components/parameters/XAppLanguage"
-      - $ref: "#/components/parameters/XAppPlatform"
-      - $ref: "#/components/parameters/PictureID"
-      - $ref: "#/components/parameters/Authorization"
-    delete:
-      tags: ["Manage profile"]
-      operationId: deletePhoto
-      summary: Photo DELETE operation
-      security:
-        - BearerAuth: []
-      responses:
-        "200":
-          description: Photo deleted successfully
+          description: Profile photo updated successfully
         "400": { $ref: "#/components/responses/BadRequest" }
         "500": { $ref: "#/components/responses/InternalServerError" }
-  /user/{userID}/pictures/{pictureID}/likes:
+
+  /chat/{ConversationID}:
+    parameters:
+      - $ref: "#/components/parameters/ConversationID"
     post:
-      tags: ["Photo interactions"]
-      summary: Like a photo
-      description: Add a like to the specified photo. This operation will also update the `likeCounter` in the photo schema.
-      parameters:
-        - $ref: '#/components/parameters/UserID'
-        - $ref: '#/components/parameters/PictureID'
-      security:
-        - BearerAuth: []
-      responses:
-        "200":
-          description: Photo liked successfully
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  picture:
-                    $ref: "#/components/schemas/Picture"
-                  like:
-                    $ref: "#/components/schemas/Like"
-        "404":
-          description: Photo not found
-        "401":
-          description: Unauthorized
-        "500":
-          $ref: "#/components/responses/InternalServerError"
-    delete:
-      tags: ["Photo interactions"]
-      summary: Unlike a photo
-      description: Remove a like from the specified photo. This operation will also decrement the `likeCounter` in the photo schema.
-      parameters:
-        - $ref: '#/components/parameters/UserID'
-        - $ref: '#/components/parameters/PictureID'
-      security:
-        - BearerAuth: []
-      responses:
-        "200":
-          description: Photo unliked successfully
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  picture:
-                    $ref: "#/components/schemas/Picture"
-                  message:
-                    type: string
-        "404":
-          description: Photo not found
-        "401":
-          description: Unauthorized
-        "500":
-          $ref: "#/components/responses/InternalServerError"
-  
-  /user/{userID}/pictures/{pictureID}/comments:
-    post:
-      tags: ["Photo interactions"]
-      summary: Add a comment to a photo
-      description: Add a comment to the specified photo. This operation may also update the `commentCount` in the photo schema (optional).
-      parameters:
-        - $ref: '#/components/parameters/UserID'
-        - $ref: '#/components/parameters/PictureID'
-      security:
-        - BearerAuth: []
+      operationId: addToGroup
+      summary: Add one or more users to a group
+      description: Adds users to the specified group.
+      tags: ["Conversations"]
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/Comment"
-      responses:
-        "201":
-          description: Comment added successfully
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  picture:
-                    $ref: "#/components/schemas/Picture"
-                  comment:
-                    $ref: "#/components/schemas/Comment"
-        "404":
-          description: Photo not found
-        "401":
-          description: Unauthorized
-        "500":
-          $ref: "#/components/responses/InternalServerError"
-  /user/{userID}/pictures/{pictureID}/comments/{commentID}:
-    delete:
-      tags: ["Photo interactions"]
-      summary: Delete a comment
-      description: Remove a specific comment from the photo.
-      parameters:
-        - $ref: '#/components/parameters/UserID'
-        - $ref: '#/components/parameters/PictureID'
-        - name: commentID
-          in: path
-          required: true
-          schema:
-            type: string
-          description: The unique identifier of the comment
-      security:
-        - BearerAuth: []
+              type: object
+              properties:
+                userIDs:
+                  type: array
+                  items:
+                    - $ref: "#/components/parameters/UserID"
+              required:
+                - userIDs
       responses:
         "200":
-          description: Comment deleted successfully
+          description: Users added successfully
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401":
+          description: Unauthorized (missing or invalid token)
+        "404":
+          description: Conversation not found
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+    delete:
+      tags: ["Conversations"]
+      operationId: leaveGroup
+      summary: Leave a group
+      description: Remove partecipation from a group.
+      responses:
+        "204":
+          description: Message deleted successfully.
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
+
+  /chat/{ConversationID}/name:
+    parameters:
+      - $ref: "#/components/parameters/ConversationID"
+    put:
+      operationId: setGroupName
+      summary: Set a group name
+      tags: ["Conversations"]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  description: The new name of the group
+              required:
+                - name
+      responses:
+        "200":
+          description: Group name modified successfully
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401":
+          description: Unauthorized (missing or invalid token)
+        "404":
+          description: Conversation not found
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+  
+  /chat/{ConversationID}/photo:
+    parameters:
+        - $ref: "#/components/parameters/ConversationID"
+    put:
+      tags: ["Conversations"]
+      operationId: setGroupPhoto
+      summary: Change group photo
+      requestBody:
+        description: New photo to be set
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                photo:
+                  type: string
+                  format: uri
+              required:
+                - photo
+      responses:
+        "200":
+          description: Group photo updated successfully
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
+
+  /chat/{ConversationID}/messages:
+    parameters:
+        - $ref: "#/components/parameters/ConversationID"
+    get:
+      operationId: getConversation
+      summary: Get messages from a conversation
+      description: Retrieves all messages from the specified conversation.
+      tags: ["Conversations"]
+      responses:
+        "200":
+          description: List of private chat messages
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  picture:
-                    $ref: "#/components/schemas/Picture"
-                  message:
-                    type: string
+                $ref: '#/components/schemas/Conversation'
+        "400": { $ref: "#/components/responses/BadRequest" }
         "404":
-          description: Photo or comment not found
+          description: Conversation not found
         "401":
-          description: Unauthorized
+          description: Unauthorized (missing or invalid token)
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+    post:
+      summary: Send a message in a conversation
+      description: Post a new message in a specific conversation (either private or group).
+      operationId: sendMessage
+      tags:
+        - Messages
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Message"  # Link to Message schema
+      responses:
+        "200":
+          description: Message sent successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Message"  # Same Message schema to return the sent message
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401":
+          description: Unauthorized (missing or invalid token)
+        "404":
+          description: Conversation not found
         "500":
           $ref: "#/components/responses/InternalServerError"
 
+  /chat/{ConversationID}/forward:
+    parameters:
+        - $ref: "#/components/parameters/ConversationID"
+    post:
+      summary: Forward an existing message
+      description: Forward an existing message to the specified conversation.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ForwardMessage"
+      responses:
+        "200":
+          description: Message sent successfully
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401":
+          description: Unauthorized (missing or invalid token)
+        "404":
+          description: Conversation not found
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /chat/{ConversationID}/{MessageID}/:
+    parameters:
+        - $ref: "#/components/parameters/ConversationID"
+        - $ref: "#/components/parameters/MessageID"
+    delete:
+      tags: ["Messages"]
+      operationId: deleteMessage
+      summary: Delete a message
+      description: Deleting a message from a conversation.
+      responses:
+        "204":
+          description: Message deleted successfully.
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
+
+  /chat/{ConversationID}/{MessageID}/reaction:
+    parameters:
+        - $ref: "#/components/parameters/ConversationID"
+        - $ref: "#/components/parameters/MessageID"
+    post:
+      operationId: commentMessage
+      summary: Reacting to a message
+      description: Reacting a message of the specified conversation.
+      tags: ["Messages"]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Reaction"
+      responses:
+        "200":
+          description: Message sent successfully
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401":
+          description: Unauthorized (missing or invalid token)
+        "404":
+          description: Conversation not found
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+    delete:
+      tags: ["Messages"]
+      operationId: uncommentMessage
+      summary: Unfollow another user
+      description: Deleting the reaction to a message
+      responses:
+        "204":
+          description: Reaction deleted successfully.
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "404": { description: User not found }
+        "500": { $ref: "#/components/responses/InternalServerError" }
+    
   /stream:
     get:
       tags:
         - "Get services"
-      operationId: getMyStream
-      summary: Get personal photo stream
-      description: Retrieve a stream of photos from users the authenticated user follows.
+      operationId: getMyConversations
+      summary: Get personal conversations stream
+      description: Retrieve a stream of the authenticated user's conversations.
       security:
         - BearerAuth: []
-      parameters:
-        - name: limit
-          in: query
-          required: false
-          schema:
-            type: integer
-            default: 20
-            description: Number of photos per page
-        - name: page
-          in: query
-          required: false
-          schema:
-            type: integer
-            default: 1
-            description: Page number for pagination
       responses:
         "200":
-          description: Photos retrieved successfully
+          description: Chats retrieved successfully
           content:
             application/json:
               schema:
                 type: object
                 properties:
-                  photos:
+                  conversations:
                     type: array
                     items:
-                      $ref: '#/components/schemas/Picture'
-                  pagination:
-                    type: object
-                    properties:
-                      currentPage:
-                        type: integer
-                      totalPages:
-                        type: integer
+                      $ref: '#/components/schemas/Conversation'
         "401":
           description: Unauthorized access
         "500":
