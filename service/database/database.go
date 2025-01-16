@@ -39,13 +39,49 @@ import (
 // AppDatabase is the high level interface for the DB
 type AppDatabase interface {
 	GetName() (string, error)
-	SetName(name string) error
-
+	SetMyUserName(userID int, username string) error
+	SetMyPhoto(userID int, profile_pic string) error
+	//AddToGroup
+	//LeaveGroup
+	//SetGroupName
+	//SetGroupPhoto
+	//GetConversation
+	//SendMessage
+	//ForwardMessage
+	//DeleteMessage
+	//CommentMessage
+	//UncommentMesage
+	//GetMyConversations
+	//DoLogin
 	Ping() error
 }
 
 type appdbimpl struct {
 	c *sql.DB
+}
+
+func (db *appdbimpl) GetUserIDByUsername(username string) (int, error) {
+	var userID int
+	err := db.c.QueryRow("SELECT id FROM users WHERE name = ?", username).Scan(&userID)
+	if err != nil {
+		return 0, err // Handle no user found or other errors
+	}
+	return userID, nil
+}
+
+func (db *appdbimpl) SetMyUserName(userID int, name string) error {
+	_, err := db.c.Exec("UPDATE users SET name = ? WHERE id = ?", name, userID)
+	return err
+}
+
+func (db *appdbimpl) SetMyPhoto(userID int, profile_pic string) error {
+	_, err := db.c.Exec("UPDATE users SET profile_pic = ? WHERE id = ?", profile_pic, userID)
+	return err
+}
+
+func (db *appdbimpl) AddToGroup(userID int, groupID int) error {
+	_, err := db.c.Exec("INSERT INTO groups (user_id, group_id) VALUES (?, ?)", userID, groupID)
+	return err
 }
 
 // New returns a new instance of AppDatabase based on the SQLite connection `db`.
@@ -65,7 +101,6 @@ func New(db *sql.DB) (AppDatabase, error) {
 			return nil, fmt.Errorf("error creating database structure: %w", err)
 		}
 	}
-
 	return &appdbimpl{
 		c: db,
 	}, nil

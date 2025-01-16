@@ -1,0 +1,6 @@
+{
+  "dependencies": {
+    "@ibm-cloud/openapi-ruleset-utilities": "^1.7.0",
+    "lru-cache": "^11.0.2"
+  }
+}
