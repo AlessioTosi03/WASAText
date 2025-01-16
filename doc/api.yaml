@@ -43,31 +43,31 @@ components:
       allOf:
         - $ref: "#/components/schemas/Conversation"
         - type: object
-          properties:
-            name:
-              description: name of the group.
-              type: string
-              example: the koalas
-            description:
-              description: "the description of the group."
-              type: string
-            groupPicURL:
-              type: string
-              format: uri
-            participants:
-              description: the list of the group participants
-              type: array
-              items: { $ref: "#/components/schemas/User" }
+      properties:
+        name:
+          description: name of the group.
+          type: string
+          example: the koalas
+        description:
+          description: "the description of the group."
+          type: string
+        groupPicURL:
+          type: string
+          format: uri
+        participants:
+          description: the list of the group participants
+          type: array
+          items: { $ref: "#/components/schemas/User" }
     Chat:
       allOf:
         - $ref: "#/components/schemas/Conversation"
         - type: object
-          properties:
-            chatters:
-              type: array
-              minItems: 2
-              maxItems: 2
-              items: { $ref: "#/components/schemas/User" }
+      properties:
+        chatters:
+          type: array
+          minItems: 2
+          maxItems: 2
+          items: { $ref: "#/components/schemas/User" }
     Message:
       title: message
       description: "This object represents a single message."
@@ -150,44 +150,6 @@ components:
       bearerFormat: JWT # optional, arbitrary value for documentation purposes
 
   parameters:
-    XAppVersion:
-      schema:
-        type: string
-        pattern: '^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+([0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$'
-        minLength: 1
-        maxLength: 10
-      name: X-App-Version
-      in: header
-      required: true
-      description: App human readable version ("semantic version" format)
-      allowEmptyValue: false
-    XAppBuild:
-      schema: { type: integer }
-      name: X-App-Build
-      in: header
-      required: true
-      description: App build number
-      allowEmptyValue: false
-    XAppLanguage:
-      schema:
-        type: string
-        pattern: '^[a-z]{2}([-_][A-Z]{2})?$'
-        minLength: 2
-        maxLength: 5
-      name: X-App-Language
-      in: header
-      required: true
-      description: App language in ISO 639-1 format
-      allowEmptyValue: false
-    XAppPlatform:
-      schema:
-        type: string
-        enum: [ios, android]
-      name: X-App-Platform
-      in: header
-      required: true
-      description: App operating system / platform
-      allowEmptyValue: false
     MessageID:
       schema:
         type: integer
@@ -221,11 +183,6 @@ components:
       
 paths:
   /status:
-    parameters:
-      - $ref: "#/components/parameters/XAppBuild"
-      - $ref: "#/components/parameters/XAppVersion"
-      - $ref: "#/components/parameters/XAppLanguage"
-      - $ref: "#/components/parameters/XAppPlatform"
     get:
       tags: ["Get services"]
       operationId: getStatusMessage
@@ -298,12 +255,12 @@ paths:
                     type: string
                     example: "Login Successful"
   /Users/{UserID}/name:
-    parameters:
-      - $ref: "#/components/parameters/UserID"
     put:
       tags: ["Profile"]
       operationId: setMyUserName
       summary: Modify my Username
+      parameters:
+        - $ref: "#/components/parameters/UserID"
       requestBody:
         description: New username to be set
         content:
@@ -329,12 +286,12 @@ paths:
         "500": { $ref: "#/components/responses/InternalServerError" }
 
   /Users/{UserID}/photo:
-    parameters:
-      - $ref: "#/components/parameters/UserID"
     put:
       tags: ["Profile"]
       operationId: setMyPhoto
       summary: Change my photo
+      parameters:
+        - $ref: "#/components/parameters/UserID"
       requestBody:
         description: New photo to be set
         content:
@@ -354,12 +311,12 @@ paths:
         "500": { $ref: "#/components/responses/InternalServerError" }
 
   /chat/{ConversationID}:
-    parameters:
-      - $ref: "#/components/parameters/ConversationID"
     post:
       operationId: addToGroup
       summary: Add one or more users to a group
       description: Adds users to the specified group.
+      parameters:
+        - $ref: "#/components/parameters/ConversationID"
       tags: ["Conversations"]
       requestBody:
         required: true
@@ -389,6 +346,8 @@ paths:
       operationId: leaveGroup
       summary: Leave a group
       description: Remove partecipation from a group.
+      parameters:
+        - $ref: "#/components/parameters/ConversationID"
       responses:
         "204":
           description: Message deleted successfully.
@@ -396,11 +355,11 @@ paths:
         "500": { $ref: "#/components/responses/InternalServerError" }
 
   /chat/{ConversationID}/name:
-    parameters:
-      - $ref: "#/components/parameters/ConversationID"
     put:
       operationId: setGroupName
       summary: Set a group name
+      parameters:
+        - $ref: "#/components/parameters/ConversationID"
       tags: ["Conversations"]
       requestBody:
         required: true
@@ -426,12 +385,12 @@ paths:
           $ref: "#/components/responses/InternalServerError"
   
   /chat/{ConversationID}/photo:
-    parameters:
-        - $ref: "#/components/parameters/ConversationID"
     put:
       tags: ["Conversations"]
       operationId: setGroupPhoto
       summary: Change group photo
+      parameters:
+        - $ref: "#/components/parameters/ConversationID"
       requestBody:
         description: New photo to be set
         content:
@@ -451,12 +410,12 @@ paths:
         "500": { $ref: "#/components/responses/InternalServerError" }
 
   /chat/{ConversationID}/messages:
-    parameters:
-        - $ref: "#/components/parameters/ConversationID"
     get:
       operationId: getConversation
       summary: Get messages from a conversation
       description: Retrieves all messages from the specified conversation.
+      parameters:
+        - $ref: "#/components/parameters/ConversationID"
       tags: ["Conversations"]
       responses:
         "200":
@@ -476,6 +435,8 @@ paths:
       summary: Send a message in a conversation
       description: Post a new message in a specific conversation (either private or group).
       operationId: sendMessage
+      parameters:
+        - $ref: "#/components/parameters/ConversationID"
       tags:
         - Messages
       requestBody:
@@ -500,11 +461,11 @@ paths:
           $ref: "#/components/responses/InternalServerError"
 
   /chat/{ConversationID}/forward:
-    parameters:
-        - $ref: "#/components/parameters/ConversationID"
     post:
       summary: Forward an existing message
       description: Forward an existing message to the specified conversation.
+      parameters:
+        - $ref: "#/components/parameters/ConversationID"
       requestBody:
         required: true
         content:
@@ -523,14 +484,14 @@ paths:
           $ref: "#/components/responses/InternalServerError"
 
   /chat/{ConversationID}/{MessageID}/:
-    parameters:
-        - $ref: "#/components/parameters/ConversationID"
-        - $ref: "#/components/parameters/MessageID"
     delete:
       tags: ["Messages"]
       operationId: deleteMessage
       summary: Delete a message
       description: Deleting a message from a conversation.
+      parameters:
+        - $ref: "#/components/parameters/ConversationID"
+        - $ref: "#/components/parameters/MessageID"
       responses:
         "204":
           description: Message deleted successfully.
@@ -538,13 +499,13 @@ paths:
         "500": { $ref: "#/components/responses/InternalServerError" }
 
   /chat/{ConversationID}/{MessageID}/reaction:
-    parameters:
-        - $ref: "#/components/parameters/ConversationID"
-        - $ref: "#/components/parameters/MessageID"
     post:
       operationId: commentMessage
       summary: Reacting to a message
       description: Reacting a message of the specified conversation.
+      parameters:
+        - $ref: "#/components/parameters/ConversationID"
+        - $ref: "#/components/parameters/MessageID"
       tags: ["Messages"]
       requestBody:
         required: true
@@ -567,6 +528,9 @@ paths:
       operationId: uncommentMessage
       summary: Unfollow another user
       description: Deleting the reaction to a message
+      parameters:
+        - $ref: "#/components/parameters/ConversationID"
+        - $ref: "#/components/parameters/MessageID"
       responses:
         "204":
           description: Reaction deleted successfully.
