@@ -34,12 +34,47 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"log"
+
+	_ "github.com/mattn/go-sqlite3"
 )
+
+func main() {
+	// Example configuration struct, normally you'd load this from a config file or environment variables
+	cfg := struct {
+		DB struct {
+			Filename string
+		}
+	}{}
+	// Use the path to your goland identifier.sqlite file here
+	cfg.DB.Filename = "./identifier.sqlite" // Replace with the actual path to your SQLite file
+
+	// Open database connection
+	db, err := sql.Open("sqlite3", cfg.DB.Filename)
+	if err != nil {
+		log.Fatalf("error opening SQLite DB: %v", err)
+	}
+	defer db.Close()
+
+	// Check if 'users' table exists
+	var tableName string
+	err = db.QueryRow("SELECT name FROM sqlite_master WHERE type='table' AND name='users';").Scan(&tableName)
+	if err != nil {
+		log.Println("Table 'users' not found, creating it...")
+		_, err := db.Exec(`CREATE TABLE users (id INTEGER PRIMARY KEY, username TEXT, profile_pic TEXT)`)
+		if err != nil {
+			log.Fatalf("error creating 'users' table: %v", err)
+		}
+	}
+
+	// Now you can use appDB for your application logic
+	fmt.Println("AppDatabase initialized and ready to use")
+}
 
 // AppDatabase is the high level interface for the DB
 type AppDatabase interface {
 	GetName() (string, error)
-	SetMyUserName(userID int, username string) error
+	SetMyUserName(userID int, name string) error
 	SetMyPhoto(userID int, profile_pic string) error
 	//AddToGroup
 	//LeaveGroup
@@ -67,11 +102,6 @@ func (db *appdbimpl) GetUserIDByUsername(username string) (int, error) {
 		return 0, err // Handle no user found or other errors
 	}
 	return userID, nil
-}
-
-func (db *appdbimpl) SetMyUserName(userID int, name string) error {
-	_, err := db.c.Exec("UPDATE users SET name = ? WHERE id = ?", name, userID)
-	return err
 }
 
 func (db *appdbimpl) SetMyPhoto(userID int, profile_pic string) error {

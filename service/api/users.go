@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"strconv"
-
+    "fmt"
 	"github.com/julienschmidt/httprouter"
 )
 
@@ -28,12 +28,15 @@ func (rt *_router) setMyUserName(w http.ResponseWriter, r *http.Request, ps http
 		return
 	}
 
-	userIDStr := ps.ByName("ID")
+	userIDStr := ps.ByName("UserID")
 	userID, _ := strconv.Atoi(userIDStr)
 	// Update the username in the database
 	err := rt.db.SetMyUserName(userID, req.Username)
 	if err != nil {
-		http.Error(w, "Failed to update username", http.StatusInternalServerError)
+		rt.baseLogger.Errorf("Failed to update username for userID %d: %v", userID, err)
+		usererror := fmt.Sprintf("Failed to update username: %s %d", req.Username, userID)
+		http.Error(w, usererror, http.StatusInternalServerError)
+
 		return
 	}
 
