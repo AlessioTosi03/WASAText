@@ -90,12 +90,12 @@ components:
           description: list of the people that have received the message.
           type: array
           items: 
-            - $ref: "#/components/schemas/User"
+            $ref: "#/components/schemas/User"
         read:
           description: list of the people that have read the message.
           type: array
           items: 
-            - $ref: "#/components/schemas/User"
+            $ref: "#/components/schemas/User"
     ForwardMessage:
       type: object
       properties:
@@ -254,7 +254,7 @@ paths:
                   message:
                     type: string
                     example: "Login Successful"
-  /Users/{UserID}/name:
+  /Users/{userId}/name:
     put:
       tags: ["Profile"]
       operationId: setMyUserName
@@ -285,7 +285,7 @@ paths:
         "404": { description: User not found }
         "500": { $ref: "#/components/responses/InternalServerError" }
 
-  /Users/{UserID}/photo:
+  /Users/{userId}/photo:
     put:
       tags: ["Profile"]
       operationId: setMyPhoto
@@ -310,7 +310,7 @@ paths:
         "400": { $ref: "#/components/responses/BadRequest" }
         "500": { $ref: "#/components/responses/InternalServerError" }
 
-  /chat/{ConversationID}:
+  /chat/{conversationId}:
     post:
       operationId: addToGroup
       summary: Add one or more users to a group
@@ -328,7 +328,7 @@ paths:
                 userIDs:
                   type: array
                   items:
-                    - $ref: "#/components/parameters/UserID"
+                    $ref: "#/components/parameters/UserID"
               required:
                 - userIDs
       responses:
@@ -354,7 +354,7 @@ paths:
         "400": { $ref: "#/components/responses/BadRequest" }
         "500": { $ref: "#/components/responses/InternalServerError" }
 
-  /chat/{ConversationID}/name:
+  /chat/{conversationId}/name:
     put:
       operationId: setGroupName
       summary: Set a group name
@@ -384,7 +384,7 @@ paths:
         "500":
           $ref: "#/components/responses/InternalServerError"
   
-  /chat/{ConversationID}/photo:
+  /chat/{conversationId}/photo:
     put:
       tags: ["Conversations"]
       operationId: setGroupPhoto
@@ -409,7 +409,7 @@ paths:
         "400": { $ref: "#/components/responses/BadRequest" }
         "500": { $ref: "#/components/responses/InternalServerError" }
 
-  /chat/{ConversationID}/messages:
+  /chat/{conversationId}/messages:
     get:
       operationId: getConversation
       summary: Get messages from a conversation
@@ -460,7 +460,7 @@ paths:
         "500":
           $ref: "#/components/responses/InternalServerError"
 
-  /chat/{ConversationID}/forward:
+  /chat/{conversationId}/forward:
     post:
       summary: Forward an existing message
       description: Forward an existing message to the specified conversation.
@@ -483,7 +483,7 @@ paths:
         "500":
           $ref: "#/components/responses/InternalServerError"
 
-  /chat/{ConversationID}/{MessageID}/:
+  /chat/{conversationId}/{messageId}/:
     delete:
       tags: ["Messages"]
       operationId: deleteMessage
@@ -498,7 +498,7 @@ paths:
         "400": { $ref: "#/components/responses/BadRequest" }
         "500": { $ref: "#/components/responses/InternalServerError" }
 
-  /chat/{ConversationID}/{MessageID}/reaction:
+  /chat/{conversationId}/{messageId}/reaction:
     post:
       operationId: commentMessage
       summary: Reacting to a message
