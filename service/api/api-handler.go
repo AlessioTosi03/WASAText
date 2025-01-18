@@ -8,6 +8,8 @@ import (
 func (rt *_router) Handler() http.Handler {
 	// Register routes
 	rt.router.PUT("/Users/:UserID/name", rt.setMyUserName)
+	rt.router.PUT("/Users/:UserID/photo", rt.setMyPhoto)
+	rt.router.POST("/chat/:ConversationID", rt.addToGroup)
 	rt.router.GET("/context", rt.wrap(rt.getContextReply))
 
 	// Special routes

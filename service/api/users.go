@@ -2,9 +2,10 @@ package api
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"strconv"
-    "fmt"
+
 	"github.com/julienschmidt/httprouter"
 )
 
@@ -51,4 +52,66 @@ func (rt *_router) setMyUserName(w http.ResponseWriter, r *http.Request, ps http
 	if err := json.NewEncoder(w).Encode(user); err != nil {
 		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
 	}
+}
+
+func (rt *_router) setMyPhoto(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	var req User
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	userIDStr := ps.ByName("UserID")
+	userID, _ := strconv.Atoi(userIDStr)
+	// Update the username in the database
+	err := rt.db.SetMyPhoto(userID, req.ProfilePic)
+	if err != nil {
+		rt.baseLogger.Errorf("Failed to update profile pic for userID %d: %v", userID, err)
+		usererror := fmt.Sprintf("Failed to update profile pic: %s %d", req.Username, userID)
+		http.Error(w, usererror, http.StatusInternalServerError)
+		return
+	}
+
+	user := User{
+		ID:         userID,
+		Username:   req.Username,
+		ProfilePic: req.ProfilePic,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	if err := json.NewEncoder(w).Encode(user); err != nil {
+		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
+	}
+}
+
+func (rt *_router) addToGroup(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	// Extract `conversationId` from the URL parameters
+	var req User
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		rt.baseLogger.Errorf("Failed to decode request body: %v", err)
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+	defer r.Body.Close()
+
+	conversationIDStr := ps.ByName("ConversationID")
+	conversationID, _ := strconv.Atoi(conversationIDStr)
+	//!!!!need to call getIdByUsername!!!!
+	var userID int
+	userID, err := rt.db.GetUserIDByUsername(req.Username)
+	if err != nil {
+		w.WriteHeader(http.StatusNotFound)
+		json.NewEncoder(w).Encode("User not found")
+		return
+	}
+	if err := rt.db.AddToGroup(userID, conversationID); err != nil {
+		rt.baseLogger.Errorf("Failed to add user %d to conversationId %d: %v", userID, conversationID, err)
+		http.Error(w, fmt.Sprintf("Failed to add user %s to group", req.Username), http.StatusInternalServerError)
+		return
+	}
+
+	rt.baseLogger.Infof("Users %v successfully added to conversationId %s", userID, conversationID)
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte(`{"message": "Users added to group successfully"}`))
 }
