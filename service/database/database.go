@@ -45,7 +45,6 @@ type AppDatabase interface {
 	SetMyUserName(userID int, name string) error
 	SetMyPhoto(userID int, profile_pic string) error
 	AddToGroup(userID int, groupID int) error
-	//AddToGroup
 	//LeaveGroup
 	//SetGroupName
 	//SetGroupPhoto

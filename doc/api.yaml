@@ -1,27 +1,20 @@
 openapi: 3.0.3
 servers:
-  - url: "http://localhost:3000"
+  - url: "http://localhost:3000/v1"
 info:
   title: WASAText
   description: Fantastic Coffee (decaffeinated), the skeleton project for Web and Software architecture course
   version: 1.0.0
-
+tags:  # Add the tags array here
+  - name: Messages
+    description: Operations related to messages
+  - name: Conversations
+    description: Operations related to conversations
+  - name: Get services
+  - name: login
+  - name: Profile
 components:
   schemas:
-    StatusInfo:
-      title: Status Info
-      type: object
-      properties:
-        status:
-          type: string
-          enum:
-            - info
-            - warning
-            - critical
-            - ""
-        title: { type: string }
-        message: { type: string }
-        url: { type: string }
     Conversation:
       title: conversation
       description: "This object represents a single conversation."
@@ -32,42 +25,67 @@ components:
           type: integer
           example: 1
           readOnly: true
+          minimum: 1
+          maximum: 999
         messages:
           type: array
           items: { $ref: '#/components/schemas/Message' }
+          minItems: 0
+          maxItems: 999
+          description: "messages array"
         details:
-            oneOf:
-              - $ref: '#/components/schemas/Chat'
-              - $ref: '#/components/schemas/Group'
+          $ref: '#/components/schemas/ConversationDetails' # Use a named schema
+      required:
+        - id
+        - messages
+        - details
+      
+    ConversationDetails: # New named schema for 'details'
+      oneOf:
+        - $ref: '#/components/schemas/Chat'
+        - $ref: '#/components/schemas/Group'
+      description: "The type of conversation details"
+
     Group:
-      allOf:
-        - $ref: "#/components/schemas/Conversation"
-        - type: object
       properties:
         name:
           description: name of the group.
           type: string
           example: the koalas
+          pattern: "^.+$"
+          minLength: 3
+          maxLength: 16
         description:
           description: "the description of the group."
           type: string
-        groupPicURL:
+          pattern: "^.+$"
+          minLength: 3
+          maxLength: 256
+        group_pic_url:
           type: string
-          format: uri
+          format: url
+          description: "the URL of the group picture."
+          minLength: 3
+          maxLength: 64
         participants:
           description: the list of the group participants
           type: array
           items: { $ref: "#/components/schemas/User" }
+          minItems: 2
+          maxItems: 999
+      required:
+        - name
+        - participants
     Chat:
-      allOf:
-        - $ref: "#/components/schemas/Conversation"
-        - type: object
       properties:
         chatters:
           type: array
           minItems: 2
           maxItems: 2
+          description: "the list of the two chatters."
           items: { $ref: "#/components/schemas/User" }
+      required:
+        - chatters
     Message:
       title: message
       description: "This object represents a single message."
@@ -78,46 +96,67 @@ components:
           type: integer
           example: 1
           readOnly: true
-        content:
-          description: Content of this message, photo or text.
-          oneOf:
-            - type: string
-              description: a text message.
-            - type: string
-              format: binary
-              description: a photo message.
+          minimum: 1
+          maximum: 9999
+        text:
+          description: Text of this message
+          pattern: "^.+$"
+          minLength: 1
+          maxLength: 256
+          type: string
+          example: "Hello, how are you?"
+        photo_url:
+          type: string
+          format: url
+          description: URL of the photo attached to the message.
+          minLength: 3
+          maxLength: 64
         received:
           description: list of the people that have received the message.
           type: array
+          minItems: 0
+          maxItems: 99
           items: 
             $ref: "#/components/schemas/User"
         read:
           description: list of the people that have read the message.
           type: array
+          minItems: 0
+          maxItems: 99
           items: 
             $ref: "#/components/schemas/User"
+      required:
+        - id
+        - text
+        - received
+        - read
     ForwardMessage:
       type: object
+      description: "This object represents a single forwarded message."
       properties:
-        originalMessageID:
-          type: string
+        original_message_id:
+          type: integer
+          minimum: 1
+          maximum: 9999
           description: The ID of the message being forwarded.
     Reaction:
       title: reaction
       description: "This object represents a single reaction."
       type: object
       properties:
-        messageID:
-          type: integer
-          description: ID of the reacted message.
-        userID:
+        user_id:
           type: integer
           description: ID of the reacter.
+          minimum: 1
+          maximum: 999
         text:
           description: emoji Unicode.
           type: string
+          pattern: "^.+$"
+          minLength: 1
+          maxLength: 1
           example: "🙂"
-      required: [pictureID, userID, text]
+      required: [user_id, text]
     User:
       title: user
       description: "This object represents a single user."
@@ -128,21 +167,89 @@ components:
           type: integer
           example: 1
           readOnly: true
+          minimum: 1
+          maximum: 999
         name:
           description: name of the user.
           type: string
           example: andre23Z
-        profilePicURL:
+          pattern: "^.+$"
+          minLength: 3
+          maxLength: 16
+        profile_pic_url:
           type: string
-          format: uri
-  responses:
-    Unauthorized:
-      description: The access token is missing or it's expired
-    BadRequest:
-      description: The request was not compliant with the documentation (eg. missing fields, etc)
+          format: url
+          description: URL of the user's profile picture.
+          maxLength: 64
+    GoodRequest:
+      description: "This object represents a successful request."
+      type: object
+      properties:
+        message:
+          description: "Success message"
+          type: string
+          example: "Request successful"
+          pattern: "^.+$"
+          minLength: 1
+          maxLength: 64
+    BadRequestError:
+      type: object
+      description : "This object represents a bad request error."
+      properties:
+        error:
+          description: "Error type"
+          type: string
+          example: "Bad Request"
+          pattern: "^.+$"
+          minLength: 1
+          maxLength: 32
+        trace:
+          type: string
+          example: "Missing required field"
+          description: "Error message"
+          pattern: "^.+$"
+          minLength: 1
+          maxLength: 64
     InternalServerError:
-      description: The server encountered an internal error. Further info in server logs
-
+      description: "This object represents an internal server error."
+      type: object
+      properties:
+        error:
+          description: "Error type"
+          type: string
+          example: "Internal Server Error"
+          pattern: "^.+$"
+          minLength: 1
+          maxLength: 32
+        trace:
+          type: string
+          example: "Database connection failed"
+          description: "Error message"
+          pattern: "^.+$"
+          minLength: 1
+          maxLength: 64
+  responses:
+    GoodRequest:
+      description: The request was successful
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/GoodRequest'
+          example:
+            message: "Request successful"
+    BadRequest:
+      description: The request was not compliant with the documentation (e.g., missing fields, etc.)
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/BadRequestError'
+    InternalServerError:
+      description: The server encountered an internal error. Further info in server logs.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/InternalServerError'
+                
   securitySchemes:
     BearerAuth: # arbitrary name for the security scheme
       type: http
@@ -150,58 +257,45 @@ components:
       bearerFormat: JWT # optional, arbitrary value for documentation purposes
 
   parameters:
-    MessageID:
+    user_id:
       schema:
         type: integer
         example: 1
         readOnly: true
-      name: messageId
-      in: path
-      required: true
-      description: Message identifier.
-      allowEmptyValue: false
-    UserID:
-      schema:
-        type: integer
-        example: 42
-        readOnly: true
-      name: userId
+        minimum: 1
+        maximum: 999
+      name: user_id
       in: path
       required: true
       description: Unique identifier for a user.
       allowEmptyValue: false
-    ConversationID:
+    message_id:
+      schema:
+        type: integer
+        example: 1
+        readOnly: true
+        minimum: 1
+        maximum: 9999
+      name: message_id
+      in: path
+      required: true
+      description: Message identifier.
+      allowEmptyValue: false
+    conversation_id:
       schema:
         type: integer
         example: 27
         readOnly: true
-      name: conversationId
+        minimum: 1
+        maximum: 999
+      name: conversation_id
       in: path
       required: true
       description: Unique identifier for a conversation.
       allowEmptyValue: false
       
 paths:
-  /status:
-    get:
-      tags: ["Get services"]
-      operationId: getStatusMessage
-      summary: Get status message for the user about issues / updates
-      description: |-
-        The response contains a status message meant for the user. It might
-        contains information about current technical issues, update messages
-        or general information.
-      responses:
-        "200":
-          description: Status message available
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/StatusInfo"
-        "400": { $ref: "#/components/responses/BadRequest" }
-        "500": { $ref: "#/components/responses/InternalServerError" }
-
-  /:
+  /index:
     get:
       tags: ["Get services"]
       operationId: index
@@ -210,7 +304,7 @@ paths:
         This is an example of an index API description
       responses:
         "200":
-          description: Successful
+          {$ref: "#/components/responses/GoodRequest"}
         "400": { $ref: "#/components/responses/BadRequest" }
         "500": { $ref: "#/components/responses/InternalServerError" }
   
@@ -230,11 +324,13 @@ paths:
           application/json:
             schema:
               type: object
+              description: User details
               properties:
                 name:
                   type: string
-                  example: Maria
-                  pattern: 'ˆ.*?$'
+                  description: The name of the user
+                  example: 'maria'
+                  pattern: '^[^\\n]*$'
                   minLength: 3
                   maxLength: 16
         required: true
@@ -243,7 +339,11 @@ paths:
           description: User log-in action successful
           content:
             application/json:
+              example:
+                identifier: "abcdef012345"
+                message: "Login Successful"
               schema:
+                description: User identifier
                 type: object
                 properties:
                   identifier:
@@ -251,24 +351,38 @@ paths:
                     # or any other type of identifier
                     type: string
                     example: "abcdef012345"
+                    minLength: 1
+                    maxLength: 32
+                    pattern: "^.+$"
+                    description: User identifier
                   message:
                     type: string
                     example: "Login Successful"
-  /Users/{userId}/name:
+                    pattern: "^.+$"
+                    minLength: 1
+                    maxLength: 32
+                    description: Message
+  /users/{user_id}/name:
     put:
       tags: ["Profile"]
       operationId: setMyUserName
+      description: |-
+        This endpoint allows the user to change their username.
+        The new username must be unique.
       summary: Modify my Username
       parameters:
-        - $ref: "#/components/parameters/UserID"
+        - $ref: "#/components/parameters/user_id"
       requestBody:
         description: New username to be set
         content:
           application/json:
             schema:
+              description: New username
               type: object
               properties:
                 username:
+                  pattern: "^[^\\n]*$"
+                  description: The new username
                   type: string
                   example: "newUsername123"
                   minLength: 3
@@ -280,28 +394,38 @@ paths:
           description: Username updated successfully
           content:
             application/json:
+              example:
+                message: "Username updated successfully"
               schema: { $ref: "#/components/schemas/User" }
         "400": { $ref: "#/components/responses/BadRequest" }
-        "404": { description: User not found }
+        "404":
+          description: User not found
         "500": { $ref: "#/components/responses/InternalServerError" }
 
-  /Users/{userId}/photo:
+  /users/{user_id}/photo:
     put:
       tags: ["Profile"]
       operationId: setMyPhoto
       summary: Change my photo
+      description: |-
+        This endpoint allows the user to change their profile picture.
+        The new photo must be a valid URL.
       parameters:
-        - $ref: "#/components/parameters/UserID"
+        - $ref: "#/components/parameters/user_id"
       requestBody:
         description: New photo to be set
         content:
           application/json:
             schema:
+              description: New photo
               type: object
               properties:
                 photo:
+                  description: The new photo URL
+                  minLength: 3
+                  maxLength: 64
                   type: string
-                  format: uri
+                  format: url
               required:
                 - photo
       responses:
@@ -310,27 +434,30 @@ paths:
         "400": { $ref: "#/components/responses/BadRequest" }
         "500": { $ref: "#/components/responses/InternalServerError" }
 
-  /chat/{conversationId}:
+  /chat/{conversation_id}:
+    parameters:
+      - $ref: "#/components/parameters/conversation_id"
     post:
       operationId: addToGroup
       summary: Add one or more users to a group
       description: Adds users to the specified group.
-      parameters:
-        - $ref: "#/components/parameters/ConversationID"
       tags: ["Conversations"]
       requestBody:
         required: true
         content:
           application/json:
             schema:
+              description: User IDs to be added to the group
               type: object
               properties:
-                userIDs:
+                user_ids:
+                  minItems: 1
+                  maxItems: 98
                   type: array
                   items:
-                    $ref: "#/components/parameters/UserID"
+                    $ref: "#/components/schemas/User"
               required:
-                - userIDs
+                - user_ids
       responses:
         "200":
           description: Users added successfully
@@ -346,20 +473,18 @@ paths:
       operationId: leaveGroup
       summary: Leave a group
       description: Remove partecipation from a group.
-      parameters:
-        - $ref: "#/components/parameters/ConversationID"
       responses:
         "204":
           description: Message deleted successfully.
         "400": { $ref: "#/components/responses/BadRequest" }
         "500": { $ref: "#/components/responses/InternalServerError" }
 
-  /chat/{conversationId}/name:
+  /chat/{conversation_id}/name:
     put:
       operationId: setGroupName
       summary: Set a group name
       parameters:
-        - $ref: "#/components/parameters/ConversationID"
+        - $ref: "#/components/parameters/conversation_id"
       tags: ["Conversations"]
       requestBody:
         required: true
@@ -384,13 +509,13 @@ paths:
         "500":
           $ref: "#/components/responses/InternalServerError"
   
-  /chat/{conversationId}/photo:
+  /chat/{conversation_id}/photo:
     put:
       tags: ["Conversations"]
       operationId: setGroupPhoto
       summary: Change group photo
       parameters:
-        - $ref: "#/components/parameters/ConversationID"
+        - $ref: "#/components/parameters/conversation_id"
       requestBody:
         description: New photo to be set
         content:
@@ -400,7 +525,7 @@ paths:
               properties:
                 photo:
                   type: string
-                  format: uri
+                  format: url
               required:
                 - photo
       responses:
@@ -409,13 +534,13 @@ paths:
         "400": { $ref: "#/components/responses/BadRequest" }
         "500": { $ref: "#/components/responses/InternalServerError" }
 
-  /chat/{conversationId}/messages:
+  /chat/{conversation_id}/messages:
+    parameters:
+      - $ref: "#/components/parameters/conversation_id"
     get:
       operationId: getConversation
       summary: Get messages from a conversation
       description: Retrieves all messages from the specified conversation.
-      parameters:
-        - $ref: "#/components/parameters/ConversationID"
       tags: ["Conversations"]
       responses:
         "200":
@@ -435,8 +560,6 @@ paths:
       summary: Send a message in a conversation
       description: Post a new message in a specific conversation (either private or group).
       operationId: sendMessage
-      parameters:
-        - $ref: "#/components/parameters/ConversationID"
       tags:
         - Messages
       requestBody:
@@ -460,12 +583,14 @@ paths:
         "500":
           $ref: "#/components/responses/InternalServerError"
 
-  /chat/{conversationId}/forward:
+  /chat/{conversation_id}/forward:
     post:
       summary: Forward an existing message
+      operationId: forwardMessage
       description: Forward an existing message to the specified conversation.
+      tags: [Messages]
       parameters:
-        - $ref: "#/components/parameters/ConversationID"
+        - $ref: "#/components/parameters/conversation_id"
       requestBody:
         required: true
         content:
@@ -483,29 +608,29 @@ paths:
         "500":
           $ref: "#/components/responses/InternalServerError"
 
-  /chat/{conversationId}/{messageId}/:
+  /chat/{conversation_id}/messages/{message_id}:
     delete:
       tags: ["Messages"]
       operationId: deleteMessage
       summary: Delete a message
       description: Deleting a message from a conversation.
       parameters:
-        - $ref: "#/components/parameters/ConversationID"
-        - $ref: "#/components/parameters/MessageID"
+        - $ref: "#/components/parameters/conversation_id"
+        - $ref: "#/components/parameters/message_id"
       responses:
         "204":
           description: Message deleted successfully.
         "400": { $ref: "#/components/responses/BadRequest" }
         "500": { $ref: "#/components/responses/InternalServerError" }
 
-  /chat/{conversationId}/{messageId}/reaction:
+  /chat/{conversation_id}/messages/{message_id}/reaction:
+    parameters:
+      - $ref: "#/components/parameters/conversation_id"
+      - $ref: "#/components/parameters/message_id"
     post:
       operationId: commentMessage
       summary: Reacting to a message
       description: Reacting a message of the specified conversation.
-      parameters:
-        - $ref: "#/components/parameters/ConversationID"
-        - $ref: "#/components/parameters/MessageID"
       tags: ["Messages"]
       requestBody:
         required: true
@@ -528,9 +653,6 @@ paths:
       operationId: uncommentMessage
       summary: Unfollow another user
       description: Deleting the reaction to a message
-      parameters:
-        - $ref: "#/components/parameters/ConversationID"
-        - $ref: "#/components/parameters/MessageID"
       responses:
         "204":
           description: Reaction deleted successfully.
@@ -559,6 +681,7 @@ paths:
                     type: array
                     items:
                       $ref: '#/components/schemas/Conversation'
+                required: [conversations]
         "401":
           description: Unauthorized access
         "500":
