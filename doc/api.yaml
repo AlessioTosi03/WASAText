@@ -451,6 +451,7 @@ paths:
               type: object
               properties:
                 user_ids:
+                  description: List of user IDs to be added to the group
                   minItems: 1
                   maxItems: 98
                   type: array
@@ -481,6 +482,7 @@ paths:
 
   /chat/{conversation_id}/name:
     put:
+      description: Change the group name
       operationId: setGroupName
       summary: Set a group name
       parameters:
@@ -491,9 +493,13 @@ paths:
         content:
           application/json:
             schema:
+              description: New group name
               type: object
               properties:
                 name:
+                  minLength: 3
+                  maxLength: 16
+                  pattern: "^.+$"
                   type: string
                   description: The new name of the group
               required:
@@ -511,6 +517,7 @@ paths:
   
   /chat/{conversation_id}/photo:
     put:
+      description: Change the group photo
       tags: ["Conversations"]
       operationId: setGroupPhoto
       summary: Change group photo
@@ -521,9 +528,11 @@ paths:
         content:
           application/json:
             schema:
+              description: New photo
               type: object
               properties:
                 photo:
+                  maxLength: 64
                   type: string
                   format: url
               required:
@@ -547,6 +556,39 @@ paths:
           description: List of private chat messages
           content:
             application/json:
+              example:
+                id: 1
+                messages:
+                  - id: 1
+                    text: "Hello, how are you?"
+                    photo_url: "https://example.com/photo.jpg"
+                    received:
+                      - id: 1
+                        name: "andre23Z"
+                        profile_pic_url: "https://example.com/profile.jpg"
+                    read:
+                      - id: 1
+                        name: "andre23Z"
+                        profile_pic_url: "https://example.com/profile.jpg"
+                  - id: 2
+                    text: "I'm fine, thank you!"
+                    photo_url: "https://example.com/photo.jpg"
+                    received:
+                      - id: 2
+                        name: "maria"
+                        profile_pic_url: "https://example.com/profile.jpg"
+                    read:
+                      - id: 2
+                        name: "maria"
+                        profile_pic_url: "https://example.com/profile.jpg"
+                details:
+                  chatters:
+                    - id: 1
+                      name: "andre23Z"
+                      profile_pic_url: "https://example.com/profile.jpg"
+                    - id: 2
+                      name: "maria"
+                      profile_pic_url: "https://example.com/profile.jpg"
               schema:
                 $ref: '#/components/schemas/Conversation'
         "400": { $ref: "#/components/responses/BadRequest" }
@@ -573,6 +615,12 @@ paths:
           description: Message sent successfully
           content:
             application/json:
+              example:
+                id: 1
+                text: "Hello, how are you?"
+                message: "Message sent successfully"
+                received: []
+                read: []
               schema:
                 $ref: "#/components/schemas/Message"  # Same Message schema to return the sent message
         "400": { $ref: "#/components/responses/BadRequest" }
@@ -674,11 +722,17 @@ paths:
           description: Chats retrieved successfully
           content:
             application/json:
+              example:
+                conversations: []
               schema:
+                description: List of conversations
                 type: object
                 properties:
                   conversations:
                     type: array
+                    description: List of conversations
+                    minItems: 0
+                    maxItems: 999
                     items:
                       $ref: '#/components/schemas/Conversation'
                 required: [conversations]
