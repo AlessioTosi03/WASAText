@@ -45,16 +45,16 @@ type AppDatabase interface {
 	SetMyUserName(userID int, name string) error
 	SetMyPhoto(userID int, profile_pic string) error
 	AddToGroup(userID int, groupID int) error
-	//LeaveGroup
-	//SetGroupName
-	//SetGroupPhoto
-	//GetConversation
-	//SendMessage
-	//ForwardMessage
-	//DeleteMessage
-	//CommentMessage
-	//UncommentMesage
-	//GetMyConversations
+	LeaveGroup(userID int, groupID int) error
+	SetGroupName(groupID int, groupName string) error
+	SetGroupPhoto(groupID int, photoURL string) error
+	GetConversation(conversationID int) (Conversation, error)
+	SendMessage(userID int, conversationID int, message string, picture string) error
+	ForwardMessage(userID int, conversationID int, message string, picture string, forwardedID int) error
+	DeleteMessage(messageID int) error
+	CommentMessage(messageID int, comment string) error
+	UncommentMessage(messageID int) error
+	GetMyConversations(userID int) ([]Conversation, error)
 	//DoLogin
 	Ping() error
 }
