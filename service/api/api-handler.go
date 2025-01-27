@@ -16,6 +16,8 @@ func (rt *_router) Handler() http.Handler {
 	rt.router.PUT("/chat/:ConversationID/photo", rt.setGroupPhoto)
 	rt.router.GET("/chat/:ConversationID/messages", rt.getConversation)
 	rt.router.POST("/chat/:ConversationID/messages", rt.sendMessages)
+	rt.router.POST("/chat/:ConversationID/forward", rt.forwardMessages)
+	rt.router.DELETE("/chat/:ConversationID/messages/:MessageID", rt.deleteMessage)
 	// Special routes
 	rt.router.GET("/liveness", rt.liveness)
 

@@ -1,11 +1,12 @@
 package database
 
 type Message struct {
-	ID      int    `json:"id"`
-	UserID  int    `json:"user_id"`
-	ConvoID int    `json:"convo_id"`
-	Text    string `json:"text"`
-	Pic     string `json:"pic"`
+	ID        int    `json:"id"`
+	UserID    int    `json:"user_id"`
+	ConvoID   int    `json:"convo_id"`
+	Text      string `json:"text"`
+	Pic       string `json:"pic"`
+	Forwarded bool   `json:"forwarded"`
 }
 
 func (db *appdbimpl) SendMessage(userID int, conversationID int, message string, picture string) error {
@@ -13,9 +14,14 @@ func (db *appdbimpl) SendMessage(userID int, conversationID int, message string,
 	return err
 }
 
-func (db *appdbimpl) ForwardMessage(userID int, conversationID int, message string, picture string, forwardedID int) error {
-	_, err := db.c.Exec("INSERT INTO messages (user_id, conversation_id, message_text, message_pic, forwardedID) VALUES (?, ?, ?, ?, ?)", userID, conversationID, message, picture, forwardedID)
-	return err
+func (db *appdbimpl) ForwardMessage(userID int, conversationID int, forwardedID int) (Message, error) {
+	var message Message
+	err := db.c.QueryRow("SELECT message_text, image FROM messages WHERE id = ?", forwardedID).Scan(&message.Text, &message.Pic)
+	if err != nil {
+		return Message{}, err // Handle no user found or other errors
+	}
+	_, err = db.c.Exec("INSERT INTO messages (user_id, conversation_id, message_text, image, forwarded) VALUES (?, ?, ?, ?, 1)", userID, conversationID, message.Text, message.Pic)
+	return message, err
 }
 
 func (db *appdbimpl) DeleteMessage(messageID int) error {
