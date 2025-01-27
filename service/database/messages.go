@@ -29,14 +29,17 @@ func (db *appdbimpl) DeleteMessage(messageID int) error {
 	return err
 }
 
-func (db *appdbimpl) CommentMessage(messageID int, comment string) error {
-	_, err := db.c.Exec("INSERT INTO reactions (message_id, emoji) VALUES (?, ?)", messageID, comment)
+func (db *appdbimpl) CommentMessage(userID int, messageID int, comment string) error {
+	_, err := db.c.Exec("INSERT INTO reaction_relation (user_id, message_id, emoji) VALUES (?, ?, ?)", userID, messageID, comment)
 	return err
 }
 
-func (db *appdbimpl) UncommentMessage(messageID int) error {
-	_, err := db.c.Exec("DELETE FROM reactions WHERE message_id = ?", messageID)
-	return err
+func (db *appdbimpl) UncommentMessage(userID int, messageID int) (int64, error) {
+	result, err := db.c.Exec("DELETE FROM reaction_relation WHERE user_id = ? AND message_id = ?", userID, messageID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
 }
 
 func (db *appdbimpl) GetMessages(conversationID int) ([]Message, error) {
@@ -54,4 +57,13 @@ func (db *appdbimpl) GetMessages(conversationID int) ([]Message, error) {
 		allMessages = append(allMessages, m)
 	}
 	return allMessages, nil
+}
+
+func (db *appdbimpl) GetUserByReaction(reactionID int) (int, error) {
+	var userID int
+	err := db.c.QueryRow("SELECT user_id FROM reaction_relation WHERE id = ?", reactionID).Scan(&userID)
+	if err != nil {
+		return 0, err // Handle no user found or other errors
+	}
+	return userID, nil
 }

@@ -45,6 +45,7 @@ type AppDatabase interface {
 	GetGroupFromConversation(conversationID int) (Group, error)
 	GetChatFromConversation(conversationID int) (Chat, error)
 	GetMessages(conversationID int) ([]Message, error)
+	GetUserByReaction(reactionID int) (int, error)
 	SetMyUserName(userID int, name string) error
 	SetMyPhoto(userID int, profile_pic string) error
 	AddToGroup(userID int, groupID int) error
@@ -55,8 +56,8 @@ type AppDatabase interface {
 	SendMessage(userID int, conversationID int, message string, picture string) error
 	ForwardMessage(userID int, conversationID int, forwardedID int) (Message, error)
 	DeleteMessage(messageID int) error
-	CommentMessage(messageID int, comment string) error
-	UncommentMessage(messageID int) error
+	CommentMessage(userID int, messageID int, comment string) error
+	UncommentMessage(userID int, messageID int) (int64, error)
 	DoLogin(username string) (int, error)
 	Ping() error
 }

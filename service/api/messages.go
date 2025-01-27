@@ -114,3 +114,73 @@ func (rt *_router) deleteMessage(w http.ResponseWriter, r *http.Request, ps http
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte(`{"message": "Message deleted successfully"}`))
 }
+
+func (rt *_router) commentMessage(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	messageIDStr := ps.ByName("MessageID")
+	messageID, _ := strconv.Atoi(messageIDStr)
+
+	var req struct {
+		Comment string `json:"comment"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+	/*username, ok := r.Context().Value("username").(string)
+	if !ok || username == "" {
+		http.Error(w, `{"error": "Unauthorized"}`, http.StatusUnauthorized)
+		return
+	}*/
+	username := "greg"
+	userID, err := rt.db.GetUserIDByUsername(username)
+	if err != nil {
+		rt.baseLogger.Errorf("User not found for username: %s", username)
+		http.Error(w, `{"error": "User not found"}`, http.StatusNotFound)
+		return
+	}
+
+	err = rt.db.CommentMessage(userID, messageID, req.Comment)
+	if err != nil {
+		rt.baseLogger.Errorf("Failed to comment message for messageID %d: %v", messageID, err)
+		http.Error(w, "Failed to comment message", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte(`{"message": "Message commented successfully"}`))
+}
+
+func (rt *_router) uncommentMessage(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	messageIDStr := ps.ByName("MessageID")
+	messageID, _ := strconv.Atoi(messageIDStr)
+	/*username, ok := r.Context().Value("username").(string)
+	if !ok || username == "" {
+		http.Error(w, `{"error": "Unauthorized"}`, http.StatusUnauthorized)
+		return
+	}*/
+	username := "greg"
+	userID, err := rt.db.GetUserIDByUsername(username)
+	if err != nil {
+		rt.baseLogger.Errorf("User not found for username: %s", username)
+		http.Error(w, `{"error": "User not found"}`, http.StatusNotFound)
+		return
+	}
+	var rowsAffected int64
+	rowsAffected, err = rt.db.UncommentMessage(userID, messageID)
+	if err != nil {
+		rt.baseLogger.Errorf("Failed to uncomment message for messageID %d: %v", messageID, err)
+		http.Error(w, "Failed to uncomment message", http.StatusInternalServerError)
+		return
+	}
+
+	if rowsAffected == 0 {
+		rt.baseLogger.Warnf("No comment found for messageID %d by userID %d", messageID, userID)
+		http.Error(w, "Comment not found", http.StatusNotFound)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte(`{"message": "Message uncommented successfully"}`))
+}

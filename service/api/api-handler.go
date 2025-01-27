@@ -18,6 +18,8 @@ func (rt *_router) Handler() http.Handler {
 	rt.router.POST("/chat/:ConversationID/messages", rt.sendMessages)
 	rt.router.POST("/chat/:ConversationID/forward", rt.forwardMessages)
 	rt.router.DELETE("/chat/:ConversationID/messages/:MessageID", rt.deleteMessage)
+	rt.router.POST("/chat/:ConversationID/messages/:MessageID/reactions", rt.commentMessage)
+	rt.router.DELETE("/chat/:ConversationID/messages/:MessageID/reactions", rt.uncommentMessage)
 	// Special routes
 	rt.router.GET("/liveness", rt.liveness)
 
