@@ -450,15 +450,13 @@ paths:
               description: User IDs to be added to the group
               type: object
               properties:
-                user_ids:
-                  description: List of user IDs to be added to the group
-                  minItems: 1
-                  maxItems: 98
-                  type: array
-                  items:
-                    $ref: "#/components/schemas/User"
+                username:
+                  description: user to be added to the group
+                  type: string
+                  example: "newUsername123"
+                  pattern: "^[^\\n]*$"
               required:
-                - user_ids
+                - username
       responses:
         "200":
           description: Users added successfully

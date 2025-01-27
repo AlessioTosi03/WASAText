@@ -9,7 +9,7 @@ type Message struct {
 }
 
 func (db *appdbimpl) SendMessage(userID int, conversationID int, message string, picture string) error {
-	_, err := db.c.Exec("INSERT INTO messages (user_id, conversation_id, message_text, message_pic) VALUES (?, ?, ?, ?)", userID, conversationID, message, picture)
+	_, err := db.c.Exec("INSERT INTO messages (user_id, conversation_id, message_text, image) VALUES (?, ?, ?, ?)", userID, conversationID, message, picture)
 	return err
 }
 
@@ -33,62 +33,19 @@ func (db *appdbimpl) UncommentMessage(messageID int) error {
 	return err
 }
 
-func (db *appdbimpl) GetMyConversations(userID int) ([]Conversation, error) {
-	var conversations []Conversation
-	rows, err := db.c.Query("SELECT id, type FROM conversations WHERE id IN (SELECT conversation_id FROM participant_relation WHERE user_id = ?)", userID)
-	if err != nil {
-		return nil, err
+func (db *appdbimpl) GetMessages(conversationID int) ([]Message, error) {
+	rowsM, errM := db.c.Query("SELECT id, user_id, message_text, image FROM messages WHERE conversation_id = ?", conversationID)
+	if errM != nil {
+		return nil, errM
 	}
-	defer rows.Close()
-	for rows.Next() {
-		var conversation Conversation
-		var group Group
-		err := rows.Scan(&conversation.ID, &conversation.Type)
-
-		if err != nil {
+	defer rowsM.Close()
+	var allMessages []Message
+	for rowsM.Next() {
+		var m Message
+		if err := rowsM.Scan(&m.ID, &m.UserID, &m.Text, &m.Pic); err != nil {
 			return nil, err
 		}
-
-		if conversation.Type == "group" {
-			err = db.c.QueryRow("SELECT name, photo FROM groups WHERE conversation_id = ?", conversation.ID).
-				Scan(&group.Name, &group.Photo)
-			if err != nil {
-				return nil, err
-			}
-
-			rowsM, errM := db.c.Query("SELECT id, user_id, message_text, message_pic FROM messages WHERE conversation_id = ?", conversation.ID)
-			if errM != nil {
-				return nil, errM
-			}
-			defer rowsM.Close()
-			var allMessages []Message
-			for rowsM.Next() {
-				var m Message
-				if err := rowsM.Scan(&m.ID, &m.UserID, &m.Text, &m.Pic); err != nil {
-					return nil, err
-				}
-				allMessages = append(allMessages, m)
-			}
-			conversation.Messages = allMessages
-		} else if conversation.Type == "chat" {
-			rowsM, errM := db.c.Query("SELECT id, user_id, message_text, message_pic FROM messages WHERE conversation_id = ?", conversation.ID)
-			if errM != nil {
-				return nil, errM
-			}
-			defer rowsM.Close()
-
-			var allMessages []Message
-			for rowsM.Next() {
-				var m Message
-				if err := rowsM.Scan(&m.ID, &m.UserID, &m.Text, &m.Pic); err != nil {
-					return nil, err
-				}
-				allMessages = append(allMessages, m)
-			}
-			conversation.Messages = allMessages
-		}
-
-		conversations = append(conversations, conversation)
+		allMessages = append(allMessages, m)
 	}
-	return conversations, nil
+	return allMessages, nil
 }

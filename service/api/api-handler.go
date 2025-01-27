@@ -11,7 +11,11 @@ func (rt *_router) Handler() http.Handler {
 	rt.router.PUT("/Users/:UserID/photo", rt.setMyPhoto)
 	rt.router.POST("/chat/:ConversationID", rt.addToGroup)
 	rt.router.GET("/context", rt.wrap(rt.getContextReply))
-
+	rt.router.DELETE("/chat/:ConversationID", rt.leaveGroup)
+	rt.router.PUT("/chat/:ConversationID/name", rt.setGroupName)
+	rt.router.PUT("/chat/:ConversationID/photo", rt.setGroupPhoto)
+	rt.router.GET("/chat/:ConversationID/messages", rt.getConversation)
+	rt.router.POST("/chat/:ConversationID/messages", rt.sendMessages)
 	// Special routes
 	rt.router.GET("/liveness", rt.liveness)
 

@@ -21,12 +21,12 @@ func (db *appdbimpl) SetMyPhoto(userID int, profile_pic string) error {
 }
 
 func (db *appdbimpl) AddToGroup(userID int, groupID int) error {
-	_, err := db.c.Exec("INSERT INTO participant_relation (user_id, group_id) VALUES (?, ?)", userID, groupID)
+	_, err := db.c.Exec("INSERT INTO participant_relation (user_id, conversation_id) VALUES (?, ?)", userID, groupID)
 	return err
 }
 
 func (db *appdbimpl) LeaveGroup(userID int, groupID int) error {
 	// Attempt to remove the user from the group
-	_, err := db.c.Exec("DELETE FROM participant_relation WHERE user_id = ? AND group_id = ?", userID, groupID)
+	_, err := db.c.Exec("DELETE FROM participant_relation WHERE user_id = ? AND conversation_id = ?", userID, groupID)
 	return err
 }

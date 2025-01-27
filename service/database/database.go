@@ -42,6 +42,8 @@ import (
 type AppDatabase interface {
 	GetName() (string, error)
 	GetUserIDByUsername(username string) (int, error)
+	GetGroupFromConversation(conversationID int) (Group, error)
+	GetChatFromConversation(conversationID int) (Chat, error)
 	SetMyUserName(userID int, name string) error
 	SetMyPhoto(userID int, profile_pic string) error
 	AddToGroup(userID int, groupID int) error
@@ -54,8 +56,8 @@ type AppDatabase interface {
 	DeleteMessage(messageID int) error
 	CommentMessage(messageID int, comment string) error
 	UncommentMessage(messageID int) error
-	GetMyConversations(userID int) ([]Conversation, error)
-	//DoLogin
+	GetMessages(conversationID int) ([]Message, error)
+	DoLogin(username string) (int, error)
 	Ping() error
 }
 

@@ -115,3 +115,36 @@ func (rt *_router) addToGroup(w http.ResponseWriter, r *http.Request, ps httprou
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte(`{"message": "Users added to group successfully"}`))
 }
+
+func (rt *_router) leaveGroup(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	// Extract the username from the context
+	username, ok := r.Context().Value("username").(string)
+	if !ok || username == "" {
+		http.Error(w, `{"error": "Unauthorized"}`, http.StatusUnauthorized)
+		return
+	}
+
+	// Extract `conversationID` from the URL parameters
+	conversationIDStr := ps.ByName("ConversationID")
+	conversationID, _ := strconv.Atoi(conversationIDStr)
+
+	// Get the user ID using the username
+	userID, err := rt.db.GetUserIDByUsername(username)
+	if err != nil {
+		rt.baseLogger.Errorf("User not found for username: %s", username)
+		http.Error(w, `{"error": "User not found"}`, http.StatusNotFound)
+		return
+	}
+
+	// Perform the 'leave group' operation
+	if err := rt.db.LeaveGroup(userID, conversationID); err != nil {
+		rt.baseLogger.Errorf("Failed to remove user %d from conversation %d: %v", userID, conversationID, err)
+		http.Error(w, `{"error": "Failed to leave group"}`, http.StatusInternalServerError)
+		return
+	}
+
+	// Log success and respond with success message
+	rt.baseLogger.Infof("User %d successfully left conversation %d", userID, conversationID)
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte(`{"message": "Successfully left the group"}`))
+}
