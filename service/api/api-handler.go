@@ -20,6 +20,8 @@ func (rt *_router) Handler() http.Handler {
 	rt.router.DELETE("/chat/:ConversationID/messages/:MessageID", rt.deleteMessage)
 	rt.router.POST("/chat/:ConversationID/messages/:MessageID/reactions", rt.commentMessage)
 	rt.router.DELETE("/chat/:ConversationID/messages/:MessageID/reactions", rt.uncommentMessage)
+	rt.router.GET("/stream", rt.getMyConversations)
+	rt.router.POST("/session", rt.doLogin)
 	// Special routes
 	rt.router.GET("/liveness", rt.liveness)
 

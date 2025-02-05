@@ -9,6 +9,15 @@ func (db *appdbimpl) GetUserIDByUsername(username string) (int, error) {
 	return userID, nil
 }
 
+func (db *appdbimpl) CreateUsername(username string) (int, error) {
+	result, err := db.c.Exec("INSERT INTO users (name, profile_pic) VALUES (?, 'default')", username)
+	if err != nil {
+		return 0, err
+	}
+	id, _ := result.LastInsertId()
+	return int(id), nil
+}
+
 // SetName updates the username for a given user ID
 func (db *appdbimpl) SetMyUserName(userID int, name string) error {
 	_, err := db.c.Exec("UPDATE users SET name = ? WHERE id = ?", name, userID)
@@ -29,4 +38,13 @@ func (db *appdbimpl) LeaveGroup(userID int, groupID int) error {
 	// Attempt to remove the user from the group
 	_, err := db.c.Exec("DELETE FROM participant_relation WHERE user_id = ? AND conversation_id = ?", userID, groupID)
 	return err
+}
+
+func (db *appdbimpl) CheckUserParticipation(userID int, conversationID int) (bool, error) {
+	var count int
+	err := db.c.QueryRow("SELECT COUNT(*) FROM participant_relation WHERE user_id = ? AND conversation_id = ?", userID, conversationID).Scan(&count)
+	if err != nil {
+		return false, err
+	}
+	return count > 0, nil
 }

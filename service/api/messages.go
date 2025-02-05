@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/AlessioTosi03/WASAText/service/database"
 	"github.com/julienschmidt/httprouter"
@@ -16,32 +17,50 @@ func (rt *_router) sendMessages(w http.ResponseWriter, r *http.Request, ps httpr
 		return
 	}
 
-	/*username, ok := r.Context().Value("username").(string)
-	if !ok || username == "" {
-		http.Error(w, `{"error": "Unauthorized"}`, http.StatusUnauthorized)
+	authHeader := r.Header.Get("Authorization")
+	if authHeader == "" {
+		http.Error(w, "Missing Authorization header", http.StatusUnauthorized)
 		return
-	}*/
-	username := "greg"
-	userID, err := rt.db.GetUserIDByUsername(username)
+	}
+
+	// Check if it's in the format "Bearer <user_id>"
+	parts := strings.Split(authHeader, " ")
+	if len(parts) != 2 || parts[0] != "Bearer" {
+		http.Error(w, "Invalid Authorization format", http.StatusUnauthorized)
+		return
+	}
+
+	authID, err := strconv.Atoi(parts[1])
 	if err != nil {
-		rt.baseLogger.Errorf("User not found for username: %s", username)
-		http.Error(w, `{"error": "User not found"}`, http.StatusNotFound)
+		http.Error(w, "Invalid Authorization token", http.StatusUnauthorized)
 		return
 	}
 
 	conversationIDStr := ps.ByName("ConversationID")
 	conversationID, _ := strconv.Atoi(conversationIDStr)
 
-	err = rt.db.SendMessage(userID, conversationID, req.Text, req.Pic)
+	partecipation, err := rt.db.CheckUserParticipation(authID, conversationID)
 	if err != nil {
-		rt.baseLogger.Errorf("Failed to send message for userID %d: %v", userID, err)
+		rt.baseLogger.Errorf("Failed to check user participation: %v", err)
+		http.Error(w, "Failed to check user participation", http.StatusInternalServerError)
+		return
+	}
+	if !partecipation {
+		rt.baseLogger.Errorf("User %d is not part of conversation %d", authID, conversationID)
+		http.Error(w, "User is not part of conversation", http.StatusUnauthorized)
+		return
+	}
+
+	err = rt.db.SendMessage(authID, conversationID, req.Text, req.Pic)
+	if err != nil {
+		rt.baseLogger.Errorf("Failed to send message for userID %d: %v", authID, err)
 		usererror := "Failed to send message"
 		http.Error(w, usererror, http.StatusInternalServerError)
 		return
 	}
 
 	message := database.Message{
-		UserID:  userID,
+		UserID:  authID,
 		ConvoID: conversationID,
 		Text:    req.Text,
 		Pic:     req.Pic,
@@ -61,31 +80,50 @@ func (rt *_router) forwardMessages(w http.ResponseWriter, r *http.Request, ps ht
 		return
 	}
 
-	/*username, ok := r.Context().Value("username").(string)
-	if !ok || username == "" {
-		http.Error(w, `{"error": "Unauthorized"}`, http.StatusUnauthorized)
-		return
-	}*/
-	username := "greg"
-	userID, err := rt.db.GetUserIDByUsername(username)
-	if err != nil {
-		rt.baseLogger.Errorf("User not found for username: %s", username)
-		http.Error(w, `{"error": "User not found"}`, http.StatusNotFound)
+	authHeader := r.Header.Get("Authorization")
+	if authHeader == "" {
+		http.Error(w, "Missing Authorization header", http.StatusUnauthorized)
 		return
 	}
+
+	// Check if it's in the format "Bearer <user_id>"
+	parts := strings.Split(authHeader, " ")
+	if len(parts) != 2 || parts[0] != "Bearer" {
+		http.Error(w, "Invalid Authorization format", http.StatusUnauthorized)
+		return
+	}
+
+	authID, err := strconv.Atoi(parts[1])
+	if err != nil {
+		http.Error(w, "Invalid Authorization token", http.StatusUnauthorized)
+		return
+	}
+
 	conversationIDStr := ps.ByName("ConversationID")
 	conversationID, _ := strconv.Atoi(conversationIDStr)
 
-	req, err = rt.db.ForwardMessage(userID, conversationID, req.ID)
+	partecipation, err := rt.db.CheckUserParticipation(authID, conversationID)
 	if err != nil {
-		rt.baseLogger.Errorf("Failed to send message for userID %d: %v", userID, err)
+		rt.baseLogger.Errorf("Failed to check user participation: %v", err)
+		http.Error(w, "Failed to check user participation", http.StatusInternalServerError)
+		return
+	}
+	if !partecipation {
+		rt.baseLogger.Errorf("User %d is not part of conversation %d", authID, conversationID)
+		http.Error(w, "User is not part of conversation", http.StatusUnauthorized)
+		return
+	}
+
+	req, err = rt.db.ForwardMessage(authID, conversationID, req.ID)
+	if err != nil {
+		rt.baseLogger.Errorf("Failed to send message for userID %d: %v", authID, err)
 		usererror := "Failed to send message"
 		http.Error(w, usererror, http.StatusInternalServerError)
 		return
 	}
 
 	message := database.Message{
-		UserID:    userID,
+		UserID:    authID,
 		ConvoID:   conversationID,
 		Text:      req.Text,
 		Pic:       req.Pic,
@@ -100,10 +138,42 @@ func (rt *_router) forwardMessages(w http.ResponseWriter, r *http.Request, ps ht
 }
 
 func (rt *_router) deleteMessage(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	authHeader := r.Header.Get("Authorization")
+	if authHeader == "" {
+		http.Error(w, "Missing Authorization header", http.StatusUnauthorized)
+		return
+	}
+
+	// Check if it's in the format "Bearer <user_id>"
+	parts := strings.Split(authHeader, " ")
+	if len(parts) != 2 || parts[0] != "Bearer" {
+		http.Error(w, "Invalid Authorization format", http.StatusUnauthorized)
+		return
+	}
+
+	authID, err := strconv.Atoi(parts[1])
+	if err != nil {
+		http.Error(w, "Invalid Authorization token", http.StatusUnauthorized)
+		return
+	}
+
 	messageIDStr := ps.ByName("MessageID")
 	messageID, _ := strconv.Atoi(messageIDStr)
 
-	err := rt.db.DeleteMessage(messageID)
+	userID, err := rt.db.GetMessageUser(messageID)
+	if err != nil {
+		rt.baseLogger.Errorf("Failed to get message user for messageID %d: %v", messageID, err)
+		http.Error(w, "Failed to get message user", http.StatusInternalServerError)
+		return
+	}
+
+	if userID != authID {
+		rt.baseLogger.Errorf("User %d is not the owner of message %d", authID, messageID)
+		http.Error(w, "User is not the owner of message", http.StatusUnauthorized)
+		return
+	}
+
+	err = rt.db.DeleteMessage(messageID)
 	if err != nil {
 		rt.baseLogger.Errorf("Failed to delete message for messageID %d: %v", messageID, err)
 		http.Error(w, "Failed to delete message", http.StatusInternalServerError)
@@ -126,20 +196,42 @@ func (rt *_router) commentMessage(w http.ResponseWriter, r *http.Request, ps htt
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
-	/*username, ok := r.Context().Value("username").(string)
-	if !ok || username == "" {
-		http.Error(w, `{"error": "Unauthorized"}`, http.StatusUnauthorized)
-		return
-	}*/
-	username := "greg"
-	userID, err := rt.db.GetUserIDByUsername(username)
-	if err != nil {
-		rt.baseLogger.Errorf("User not found for username: %s", username)
-		http.Error(w, `{"error": "User not found"}`, http.StatusNotFound)
+
+	authHeader := r.Header.Get("Authorization")
+	if authHeader == "" {
+		http.Error(w, "Missing Authorization header", http.StatusUnauthorized)
 		return
 	}
 
-	err = rt.db.CommentMessage(userID, messageID, req.Comment)
+	// Check if it's in the format "Bearer <user_id>"
+	parts := strings.Split(authHeader, " ")
+	if len(parts) != 2 || parts[0] != "Bearer" {
+		http.Error(w, "Invalid Authorization format", http.StatusUnauthorized)
+		return
+	}
+
+	authID, err := strconv.Atoi(parts[1])
+	if err != nil {
+		http.Error(w, "Invalid Authorization token", http.StatusUnauthorized)
+		return
+	}
+
+	conversationIDStr := ps.ByName("ConversationID")
+	conversationID, _ := strconv.Atoi(conversationIDStr)
+
+	partecipation, err := rt.db.CheckUserParticipation(authID, conversationID)
+	if err != nil {
+		rt.baseLogger.Errorf("Failed to check user participation: %v", err)
+		http.Error(w, "Failed to check user participation", http.StatusInternalServerError)
+		return
+	}
+	if !partecipation {
+		rt.baseLogger.Errorf("User %d is not part of conversation %d", authID, conversationID)
+		http.Error(w, "User is not part of conversation", http.StatusUnauthorized)
+		return
+	}
+
+	err = rt.db.CommentMessage(authID, messageID, req.Comment)
 	if err != nil {
 		rt.baseLogger.Errorf("Failed to comment message for messageID %d: %v", messageID, err)
 		http.Error(w, "Failed to comment message", http.StatusInternalServerError)
@@ -154,20 +246,43 @@ func (rt *_router) commentMessage(w http.ResponseWriter, r *http.Request, ps htt
 func (rt *_router) uncommentMessage(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	messageIDStr := ps.ByName("MessageID")
 	messageID, _ := strconv.Atoi(messageIDStr)
-	/*username, ok := r.Context().Value("username").(string)
-	if !ok || username == "" {
-		http.Error(w, `{"error": "Unauthorized"}`, http.StatusUnauthorized)
-		return
-	}*/
-	username := "greg"
-	userID, err := rt.db.GetUserIDByUsername(username)
-	if err != nil {
-		rt.baseLogger.Errorf("User not found for username: %s", username)
-		http.Error(w, `{"error": "User not found"}`, http.StatusNotFound)
+
+	authHeader := r.Header.Get("Authorization")
+	if authHeader == "" {
+		http.Error(w, "Missing Authorization header", http.StatusUnauthorized)
 		return
 	}
+
+	// Check if it's in the format "Bearer <user_id>"
+	parts := strings.Split(authHeader, " ")
+	if len(parts) != 2 || parts[0] != "Bearer" {
+		http.Error(w, "Invalid Authorization format", http.StatusUnauthorized)
+		return
+	}
+
+	authID, err := strconv.Atoi(parts[1])
+	if err != nil {
+		http.Error(w, "Invalid Authorization token", http.StatusUnauthorized)
+		return
+	}
+
+	conversationIDStr := ps.ByName("ConversationID")
+	conversationID, _ := strconv.Atoi(conversationIDStr)
+
+	partecipation, err := rt.db.CheckUserParticipation(authID, conversationID)
+	if err != nil {
+		rt.baseLogger.Errorf("Failed to check user participation: %v", err)
+		http.Error(w, "Failed to check user participation", http.StatusInternalServerError)
+		return
+	}
+	if !partecipation {
+		rt.baseLogger.Errorf("User %d is not part of conversation %d", authID, conversationID)
+		http.Error(w, "User is not part of conversation", http.StatusUnauthorized)
+		return
+	}
+
 	var rowsAffected int64
-	rowsAffected, err = rt.db.UncommentMessage(userID, messageID)
+	rowsAffected, err = rt.db.UncommentMessage(authID, messageID)
 	if err != nil {
 		rt.baseLogger.Errorf("Failed to uncomment message for messageID %d: %v", messageID, err)
 		http.Error(w, "Failed to uncomment message", http.StatusInternalServerError)
@@ -175,7 +290,7 @@ func (rt *_router) uncommentMessage(w http.ResponseWriter, r *http.Request, ps h
 	}
 
 	if rowsAffected == 0 {
-		rt.baseLogger.Warnf("No comment found for messageID %d by userID %d", messageID, userID)
+		rt.baseLogger.Warnf("No comment found for messageID %d by userID %d", messageID, authID)
 		http.Error(w, "Comment not found", http.StatusNotFound)
 		return
 	}

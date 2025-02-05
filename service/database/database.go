@@ -40,11 +40,16 @@ import (
 
 // AppDatabase is the high level interface for the DB
 type AppDatabase interface {
+	//utilities
 	GetName() (string, error)
+	GetConversationsByUser(userID int) ([]Conversation, error)
+	GetMessageUser(messageID int) (int, error)
+	CheckUserParticipation(userID int, conversationID int) (bool, error)
 	GetUserIDByUsername(username string) (int, error)
 	GetGroupFromConversation(conversationID int) (Group, error)
 	GetChatFromConversation(conversationID int) (Chat, error)
 	GetMessages(conversationID int) ([]Message, error)
+	//mains
 	GetUserByReaction(reactionID int) (int, error)
 	SetMyUserName(userID int, name string) error
 	SetMyPhoto(userID int, profile_pic string) error
@@ -58,7 +63,9 @@ type AppDatabase interface {
 	DeleteMessage(messageID int) error
 	CommentMessage(userID int, messageID int, comment string) error
 	UncommentMessage(userID int, messageID int) (int64, error)
+	CreateUsername(username string) (int, error)
 	DoLogin(username string) (int, error)
+	//others
 	Ping() error
 }
 

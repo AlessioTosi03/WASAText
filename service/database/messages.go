@@ -67,3 +67,12 @@ func (db *appdbimpl) GetUserByReaction(reactionID int) (int, error) {
 	}
 	return userID, nil
 }
+
+func (db *appdbimpl) GetMessageUser(messageID int) (int, error) {
+	var userID int
+	err := db.c.QueryRow("SELECT user_id FROM messages WHERE id = ?", messageID).Scan(&userID)
+	if err != nil {
+		return 0, err // Handle no user found or other errors
+	}
+	return userID, nil
+}

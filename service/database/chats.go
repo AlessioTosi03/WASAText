@@ -16,6 +16,26 @@ type Chat struct {
 	ConvoID int `json:"convo_id"`
 }
 
+func (db *appdbimpl) GetConversationsByUser(userID int) ([]Conversation, error) {
+	var conversations []Conversation
+	rows, err := db.c.Query("SELECT id, type FROM conversations WHERE id IN (SELECT conversation_id FROM participants WHERE user_id = ?)", userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var conversation Conversation
+		err := rows.Scan(&conversation.ID, &conversation.Type)
+		if err != nil {
+			return nil, err
+		}
+		conversations = append(conversations, conversation)
+	}
+
+	return conversations, nil
+}
+
 func (db *appdbimpl) GetGroupFromConversation(conversationID int) (Group, error) {
 	var group Group
 	err := db.c.QueryRow("SELECT id, group_name, group_pic FROM groups WHERE id = ?", conversationID).
