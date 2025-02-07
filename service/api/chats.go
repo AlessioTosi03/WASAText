@@ -291,7 +291,14 @@ func (rt *_router) getMyConversations(w http.ResponseWriter, r *http.Request, _ 
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
 	}
+
+	var responseData []map[string]interface{}
+
 	for _, conversation := range conversations {
+		responseItem := map[string]interface{}{
+			"conversation": conversation,
+		}
+
 		if conversation.Type == "chat" {
 			chat, err := rt.db.GetChatFromConversation(conversation.ID)
 			if err != nil {
@@ -299,19 +306,15 @@ func (rt *_router) getMyConversations(w http.ResponseWriter, r *http.Request, _ 
 				http.Error(w, "Internal server error", http.StatusInternalServerError)
 				return
 			}
-
-			// Return chat data and messages
-			w.Header().Set("Content-Type", "application/json")
-			w.WriteHeader(http.StatusOK)
-			response := map[string]interface{}{
-				"conversation": conversation,
-				"chat":         chat,
-			}
-			if err := json.NewEncoder(w).Encode(response); err != nil {
-				rt.baseLogger.Errorf("Failed to encode response: %v", err)
-				http.Error(w, "Failed to encode response", http.StatusInternalServerError)
+			otherParticipant, err := rt.db.GetOtherParticipant(conversation.ID, authID)
+			if err != nil {
+				rt.baseLogger.Errorf("Error retrieving other participant for conversation ID %d: %v", conversation.ID, err)
+				http.Error(w, "Internal server error", http.StatusInternalServerError)
 				return
 			}
+
+			responseItem["chat"] = chat
+			responseItem["other_user"] = otherParticipant
 
 		} else if conversation.Type == "group" {
 			group, err := rt.db.GetGroupFromConversation(conversation.ID)
@@ -321,18 +324,16 @@ func (rt *_router) getMyConversations(w http.ResponseWriter, r *http.Request, _ 
 				return
 			}
 
-			// Return group data and messages
-			w.Header().Set("Content-Type", "application/json")
-			w.WriteHeader(http.StatusOK)
-			response := map[string]interface{}{
-				"conversation": conversation,
-				"group":        group,
-			}
-			if err := json.NewEncoder(w).Encode(response); err != nil {
-				rt.baseLogger.Errorf("Failed to encode response: %v", err)
-				http.Error(w, "Failed to encode response", http.StatusInternalServerError)
-				return
-			}
+			responseItem["group"] = group
+			responseItem["other_user"] = nil
 		}
+		responseData = append(responseData, responseItem)
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+
+	if err := json.NewEncoder(w).Encode(responseData); err != nil {
+		rt.baseLogger.Errorf("Failed to encode response: %v", err)
+		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
 	}
 }

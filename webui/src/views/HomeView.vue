@@ -12,8 +12,10 @@ export default {
 			this.loading = true;
 			this.errormsg = null;
 			try {
-				let response = await this.$axios.get("/");
-				this.some_data = response.data;
+				let response = await this.$axios.get("/stream", {
+					headers: { Authorization: "Bearer 1" }
+				});
+				this.conversations = response.data;
 			} catch (e) {
 				this.errormsg = e.toString();
 			}
@@ -49,7 +51,21 @@ export default {
 		</div>
 
 		<ErrorMsg v-if="errormsg" :msg="errormsg"></ErrorMsg>
+		<ul>
+			<li v-for="(c, index) in conversations" :key="index">
+				<!-- If it's a group conversation, show the group name -->
+				<div v-if="c.conversation.type === 'group'">
+				<strong>{{ c.group.name }}</strong> <!-- Group name -->
+				</div>
+
+				<!-- If it's a chat conversation, show the other participant's name -->
+				<div v-else>
+				<strong>{{ c.other_user }}</strong> <!-- Other user's name in chat -->
+				</div>
+			</li>
+		</ul>
 	</div>
+
 </template>
 
 <style>
