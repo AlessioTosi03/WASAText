@@ -15,6 +15,105 @@ type Group struct {
 	Name    string `json:"name"`
 	Photo   string `json:"photo"`
 }
+type ChatUsers struct {
+	ID      int    `json:"id"`
+	Chatter string `json:"chatter"`
+}
+
+func (rt *_router) createGroup(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	var req Group
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+	defer r.Body.Close()
+
+	authHeader := r.Header.Get("Authorization")
+	if authHeader == "" {
+		http.Error(w, "Missing Authorization header", http.StatusUnauthorized)
+		return
+	}
+
+	// Check if it's in the format "Bearer <user_id>"
+	parts := strings.Split(authHeader, " ")
+	if len(parts) != 2 || parts[0] != "Bearer" {
+		http.Error(w, "Invalid Authorization format", http.StatusUnauthorized)
+		return
+	}
+
+	authID, err := strconv.Atoi(parts[1])
+	if err != nil {
+		http.Error(w, "Invalid Authorization token", http.StatusUnauthorized)
+		return
+	}
+
+	groupID, err := rt.db.CreateGroup(authID, req.Name, req.Photo)
+	if err != nil {
+		rt.baseLogger.Errorf("Failed to create group: %v", err)
+		http.Error(w, "Failed to create group", http.StatusInternalServerError)
+		return
+	}
+
+	req.ID = groupID
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+	if err := json.NewEncoder(w).Encode(req); err != nil {
+		rt.baseLogger.Errorf("Failed to encode response: %v", err)
+		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
+	}
+}
+
+func (rt *_router) createChat(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	var req ChatUsers
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+	defer r.Body.Close()
+
+	authHeader := r.Header.Get("Authorization")
+	if authHeader == "" {
+		http.Error(w, "Missing Authorization header", http.StatusUnauthorized)
+		return
+	}
+
+	// Check if it's in the format "Bearer <user_id>"
+	parts := strings.Split(authHeader, " ")
+	if len(parts) != 2 || parts[0] != "Bearer" {
+		http.Error(w, "Invalid Authorization format", http.StatusUnauthorized)
+		return
+	}
+
+	authID, err := strconv.Atoi(parts[1])
+	if err != nil {
+		http.Error(w, "Invalid Authorization token", http.StatusUnauthorized)
+		return
+	}
+	var otherUserID int
+	otherUserID, err = rt.db.GetUserIDByUsername(req.Chatter)
+	if err != nil {
+		rt.baseLogger.Errorf("Failed to get user ID: %v", err)
+		http.Error(w, "Failed to get user ID", http.StatusInternalServerError)
+		return
+	}
+
+	chatID, err := rt.db.CreateChat(authID, otherUserID)
+	if err != nil {
+		rt.baseLogger.Errorf("Failed to create chat: %v", err)
+		http.Error(w, "Failed to create chat", http.StatusInternalServerError)
+		return
+	}
+
+	req.ID = chatID
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+	if err := json.NewEncoder(w).Encode(req); err != nil {
+		rt.baseLogger.Errorf("Failed to encode response: %v", err)
+		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
+	}
+}
 
 func (rt *_router) setGroupName(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	var req Group
@@ -312,7 +411,9 @@ func (rt *_router) getMyConversations(w http.ResponseWriter, r *http.Request, _ 
 				http.Error(w, "Internal server error", http.StatusInternalServerError)
 				return
 			}
-
+			if otherParticipant.ProfilePic == "default" {
+				otherParticipant.ProfilePic = "/photos/default.png"
+			}
 			responseItem["chat"] = chat
 			responseItem["other_user"] = otherParticipant
 
@@ -323,7 +424,9 @@ func (rt *_router) getMyConversations(w http.ResponseWriter, r *http.Request, _ 
 				http.Error(w, "Internal server error", http.StatusInternalServerError)
 				return
 			}
-
+			if group.Photo == "default" {
+				group.Photo = "/photos/default.png"
+			}
 			responseItem["group"] = group
 			responseItem["other_user"] = nil
 		}

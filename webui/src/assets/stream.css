@@ -1,0 +1,36 @@
+ul.conversations-list {
+	list-style-type: none;
+	padding-left: 0;
+	position: relative;
+	
+}
+
+.conversation-item{
+	position: relative;
+	padding-top: 5px;
+	padding-bottom: 5px;
+	padding-left: 10px;
+}
+
+.conversation-item:hover{
+	background-color: #0026ff43;
+}
+
+.conversation{
+	color:black;
+	text-decoration: none;
+}
+
+#conversation-photo {
+	border-radius: 50%; /* Make the image round */
+    object-fit: cover;
+}
+
+#conversation-name {
+	font-size: 1em;
+	font-weight: bold;
+	position: absolute;
+	left: 80px;
+	top: 30%;
+	flex-grow: 1;
+}

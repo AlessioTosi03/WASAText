@@ -58,3 +58,7 @@
 	stroke-linejoin: round;
 	fill: none;
 }
+
+.sidebar-heading {
+	padding-bottom: 0.75rem;
+}

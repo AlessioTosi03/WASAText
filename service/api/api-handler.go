@@ -22,6 +22,8 @@ func (rt *_router) Handler() http.Handler {
 	rt.router.DELETE("/chat/:ConversationID/messages/:MessageID/reactions", rt.uncommentMessage)
 	rt.router.GET("/stream", rt.getMyConversations)
 	rt.router.POST("/session", rt.doLogin)
+	rt.router.POST("/newGroup", rt.createGroup)
+	rt.router.POST("/newChat", rt.createChat)
 	// Special routes
 	rt.router.GET("/liveness", rt.liveness)
 

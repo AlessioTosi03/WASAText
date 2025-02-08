@@ -14,6 +14,11 @@ type Chat struct {
 	ID      int `json:"id"`
 	ConvoID int `json:"convo_id"`
 }
+type User struct {
+	ID         int    `json:"id"`
+	Username   string `json:"username"`
+	ProfilePic string `json:"profile_pic"`
+}
 
 func (db *appdbimpl) GetConversationsByUser(userID int) ([]Conversation, error) {
 	var conversations []Conversation
@@ -57,20 +62,21 @@ func (db *appdbimpl) GetChatFromConversation(conversationID int) (Chat, error) {
 	return chat, nil
 }
 
-func (db *appdbimpl) GetOtherParticipant(conversationID int, userID int) (string, error) {
+func (db *appdbimpl) GetOtherParticipant(conversationID int, userID int) (User, error) {
 	var otherUserID int
 	err := db.c.QueryRow("SELECT user_id FROM participant_relation WHERE conversation_id = ? AND user_id != ?", conversationID, userID).
 		Scan(&otherUserID)
 	if err != nil {
-		return "", err // Return an empty struct and the error
-	}
-	var otherUsername string
-	err = db.c.QueryRow("SELECT name FROM users WHERE id = ?", otherUserID).Scan(&otherUsername)
-	if err != nil {
-		return "", err // Return an empty struct and the error
+		return User{}, err // Return an empty struct and the error
 	}
 
-	return otherUsername, nil
+	otherUser := User{otherUserID, "", ""}
+	err = db.c.QueryRow("SELECT name, profile_pic FROM users WHERE id = ?", otherUserID).Scan(&otherUser.Username, &otherUser.ProfilePic)
+	if err != nil {
+		return User{}, err // Return an empty struct and the error
+	}
+
+	return otherUser, nil
 }
 
 func (db *appdbimpl) SetGroupName(groupID int, groupName string) error {
@@ -94,4 +100,67 @@ func (db *appdbimpl) GetConversation(conversationID int) (Conversation, error) {
 	}
 
 	return conversation, nil
+}
+
+func (db *appdbimpl) CreateGroup(userID int, groupName string, photoURL string) (int, error) {
+	// Attempt to insert the new group
+	conv, err := db.c.Exec("INSERT INTO conversations (type) VALUES ('group')")
+	if err != nil {
+		return 0, err
+	}
+	convoID, err := conv.LastInsertId()
+	if err != nil {
+		return 0, err
+	}
+
+	res, err := db.c.Exec("INSERT INTO groups (group_name, group_pic, conversation_id) VALUES (?, ?, ?)", groupName, photoURL, convoID)
+	if err != nil {
+		return 0, err
+	}
+	groupID, err := res.LastInsertId()
+	if err != nil {
+		return 0, err
+	}
+
+	// Attempt to insert the user as a participant
+	_, err = db.c.Exec("INSERT INTO participant_relation (conversation_id, user_id) VALUES (?, ?)", groupID, userID)
+	if err != nil {
+		return 0, err
+	}
+
+	return int(groupID), nil
+}
+
+func (db *appdbimpl) CreateChat(userID int, otherUserID int) (int, error) {
+	conv, err := db.c.Exec("INSERT INTO conversations (type) VALUES ('chat')")
+	if err != nil {
+		return 0, err
+	}
+	convoID, err := conv.LastInsertId()
+	if err != nil {
+		return 0, err
+	}
+	// Attempt to insert the new chat
+	res, err := db.c.Exec("INSERT INTO chats (conversation_id) VALUES (?)", convoID)
+	if err != nil {
+		return 0, err
+	}
+	chatID, err := res.LastInsertId()
+	if err != nil {
+		return 0, err
+	}
+
+	// Attempt to insert the user as a participant
+	_, err = db.c.Exec("INSERT INTO participant_relation (conversation_id, user_id) VALUES (?, ?)", convoID, userID)
+	if err != nil {
+		return 0, err
+	}
+
+	// Attempt to insert the other user as a participant
+	_, err = db.c.Exec("INSERT INTO participant_relation (conversation_id, user_id) VALUES (?, ?)", convoID, otherUserID)
+	if err != nil {
+		return 0, err
+	}
+
+	return int(chatID), nil
 }

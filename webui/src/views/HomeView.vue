@@ -4,26 +4,74 @@ export default {
 		return {
 			errormsg: null,
 			loading: false,
-			some_data: null,
+			isLoggedIn: false,
+			username: ""
 		}
 	},
 	methods: {
 		async refresh() {
 			this.loading = true;
 			this.errormsg = null;
-			try {
-				let response = await this.$axios.get("/stream", {
-					headers: { Authorization: "Bearer 1" }
-				});
-				this.conversations = response.data;
-			} catch (e) {
-				this.errormsg = e.toString();
+
+			const token = localStorage.getItem("token");
+
+			if (!token) {
+				this.isLoggedIn = false;
+				this.loading = false;
+				return;
 			}
+
+			try {
+				await this.$axios.get("/stream", { 
+					headers: { Authorization: `Bearer ${token}` }
+				});
+
+				this.isLoggedIn = true;
+			} catch (e) {
+				if (e.response && e.response.status === 401) {
+					this.isLoggedIn = false;
+					localStorage.removeItem("token");
+				} else {
+					this.errormsg = e.toString();
+				}
+			}
+
 			this.loading = false;
+		},
+
+		newChat() {
+			this.$router.push("/newChat");
+		},
+		newGroup() {
+			this.$router.push("/newGroup");
+		},
+		login() {
+			this.$axios.post("/session", { username: this.username })
+				.then(response => {
+					if (response.data.user_id) {
+						localStorage.setItem("token", response.data.user_id);  // Store the user_id in localStorage
+						
+						this.refresh();  // Check login status
+						// Emit login state to App.vue to notify it to refresh
+						this.$emit("login-success");  // Emit an event to parent when login is successful
+					} else {
+						this.errormsg = "Invalid response from server";
+					}
+				})
+				.catch(e => {
+					this.errormsg = e.response ? e.response.data.message : "An error occurred";
+				});
+		},
+		logout() {
+			localStorage.removeItem("token");
+			this.isLoggedIn = false;
+			this.$router.push("/");
+			this.refresh();  // Check login status
+			this.$emit("logout-success");  // Emit an event to parent when login is successful
 		},
 	},
 	mounted() {
-		this.refresh()
+		this.refresh();
 	}
 }
 </script>
@@ -32,7 +80,7 @@ export default {
 	<div>
 		<div
 			class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
-			<h1 class="h2">Home page</h1>
+			<h1 class="h2">example</h1>
 			<div class="btn-toolbar mb-2 mb-md-0">
 				<div class="btn-group me-2">
 					<button type="button" class="btn btn-sm btn-outline-secondary" @click="refresh">
@@ -43,27 +91,31 @@ export default {
 					</button>
 				</div>
 				<div class="btn-group me-2">
-					<button type="button" class="btn btn-sm btn-outline-primary" @click="newItem">
-						New
+					<button type="button" class="btn btn-sm btn-outline-primary" @click="newChat">
+						New Chat
+					</button>
+				</div>
+				<div class="btn-group me-2">
+					<button type="button" class="btn btn-sm btn-outline-primary" @click="newGroup">
+						New Group
 					</button>
 				</div>
 			</div>
 		</div>
 
 		<ErrorMsg v-if="errormsg" :msg="errormsg"></ErrorMsg>
-		<ul>
-			<li v-for="(c, index) in conversations" :key="index">
-				<!-- If it's a group conversation, show the group name -->
-				<div v-if="c.conversation.type === 'group'">
-				<strong>{{ c.group.name }}</strong> <!-- Group name -->
-				</div>
 
-				<!-- If it's a chat conversation, show the other participant's name -->
-				<div v-else>
-				<strong>{{ c.other_user }}</strong> <!-- Other user's name in chat -->
-				</div>
-			</li>
-		</ul>
+		<div v-if="isLoggedIn" class = "indicator">
+			<h1 id="welcome">Welcome to WASAText</h1>
+			<p id="login">You are logged in as {{ username }}</p>
+			<button id="logout-button" @click="logout">Log Out</button>
+		</div>
+		<div v-else class = "indicator">
+			<h1 id="welcome">Welcome to WASAText</h1>
+			<p id="login">Please log in to continue</p>
+			<input type="text" id="username" placeholder="Username" v-model="username">
+			<button id="login-button" @click="login">Log In</button>
+		</div>
 	</div>
 
 </template>

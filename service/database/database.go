@@ -48,8 +48,10 @@ type AppDatabase interface {
 	GetUserIDByUsername(username string) (int, error)
 	GetGroupFromConversation(conversationID int) (Group, error)
 	GetChatFromConversation(conversationID int) (Chat, error)
-	GetOtherParticipant(conversationID int, userID int) (string, error)
+	GetOtherParticipant(conversationID int, userID int) (User, error)
 	GetMessages(conversationID int) ([]Message, error)
+	CreateGroup(userID int, groupName string, photoURL string) (int, error)
+	CreateChat(userID int, otherUserID int) (int, error)
 	//mains
 	GetUserByReaction(reactionID int) (int, error)
 	SetMyUserName(userID int, name string) error

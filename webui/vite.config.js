@@ -14,6 +14,9 @@ export default defineConfig(({command, mode, ssrBuild}) => {
 		},
 	};
 	ret.define = {
+		__VUE_OPTIONS_API__: true,
+			__VUE_PROD_DEVTOOLS__: false,
+			__VUE_PROD_HYDRATION_MISMATCH_DETAILS__: false, // Add this line
 		// Do not modify this constant, it is used in the evaluation.
 		"__API_URL__": JSON.stringify("http://localhost:3000"),
 	};
