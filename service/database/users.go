@@ -48,3 +48,12 @@ func (db *appdbimpl) CheckUserParticipation(userID int, conversationID int) (boo
 	}
 	return count > 0, nil
 }
+
+func (db *appdbimpl) GetUsername(userID int) (string, error) {
+	var username string
+	err := db.c.QueryRow("SELECT name FROM users WHERE id = ?", userID).Scan(&username)
+	if err != nil {
+		return "", err
+	}
+	return username, nil
+}

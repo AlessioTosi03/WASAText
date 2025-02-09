@@ -42,12 +42,14 @@ func (db *appdbimpl) GetConversationsByUser(userID int) ([]Conversation, error) 
 
 func (db *appdbimpl) GetGroupFromConversation(conversationID int) (Group, error) {
 	var group Group
-	err := db.c.QueryRow("SELECT id, group_name, group_pic, conversation_id FROM groups WHERE id = ?", conversationID).
+	err := db.c.QueryRow("SELECT id, group_name, group_pic, conversation_id FROM groups WHERE conversation_id = ?", conversationID).
 		Scan(&group.ID, &group.Name, &group.Photo, &group.ConvoID)
 	if err != nil {
 		return Group{}, err // Return an empty struct and the error
 	}
-
+	if group.Photo == "default" {
+		group.Photo = "photos/default.png"
+	}
 	return group, nil
 }
 
@@ -75,7 +77,9 @@ func (db *appdbimpl) GetOtherParticipant(conversationID int, userID int) (User, 
 	if err != nil {
 		return User{}, err // Return an empty struct and the error
 	}
-
+	if otherUser.ProfilePic == "default" {
+		otherUser.ProfilePic = "photos/default.png"
+	}
 	return otherUser, nil
 }
 
@@ -123,7 +127,7 @@ func (db *appdbimpl) CreateGroup(userID int, groupName string, photoURL string) 
 	}
 
 	// Attempt to insert the user as a participant
-	_, err = db.c.Exec("INSERT INTO participant_relation (conversation_id, user_id) VALUES (?, ?)", groupID, userID)
+	_, err = db.c.Exec("INSERT INTO participant_relation (conversation_id, user_id) VALUES (?, ?)", convoID, userID)
 	if err != nil {
 		return 0, err
 	}

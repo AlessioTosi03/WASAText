@@ -2,7 +2,7 @@ package database
 
 type Message struct {
 	ID        int    `json:"id"`
-	UserID    int    `json:"user_id"`
+	Username  string `json:"username"`
 	ConvoID   int    `json:"convo_id"`
 	Text      string `json:"text"`
 	Pic       string `json:"pic"`
@@ -51,9 +51,16 @@ func (db *appdbimpl) GetMessages(conversationID int) ([]Message, error) {
 	var allMessages []Message
 	for rowsM.Next() {
 		var m Message
-		if err := rowsM.Scan(&m.ID, &m.UserID, &m.Text, &m.Pic); err != nil {
+		var UserID int
+		var username string
+		if err := rowsM.Scan(&m.ID, &UserID, &m.Text, &m.Pic); err != nil {
 			return nil, err
 		}
+		err := db.c.QueryRow("SELECT name FROM users WHERE id = ?", UserID).Scan(&username)
+		if err != nil {
+			return nil, err
+		}
+		m.Username = username
 		allMessages = append(allMessages, m)
 	}
 	return allMessages, nil

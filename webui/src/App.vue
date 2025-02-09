@@ -1,6 +1,7 @@
 <script setup>
 import { RouterLink, RouterView } from 'vue-router'
 import HomeView from './views//HomeView.vue';
+import MessagesView from './views/MessagesView.vue';
 </script>
 <script>
 export default {
@@ -12,7 +13,8 @@ export default {
 		}
 	},
 	components: {
-		HomeView
+		HomeView,
+		MessagesView
 	},
 	methods: {
 		async refresh() {
@@ -77,7 +79,7 @@ export default {
 					</h6>
 					<ul class = "conversations-list">
 						<li v-for="(c, index) in conversations" :key="index" class="nav-item">
-							<router-link  :to="'/chats/' + c.conversation.id + '/messages'">
+							<router-link  :to="'/chat/' + c.conversation.id + '/messages'">
 									<!-- If it's a group conversation, show the group name -->
 									<div v-if="c.conversation.type === 'group'" class = "conversation-item">
 										<img :src="c.group.photo" width="40" height="40" class="conversation" id= "conversation-photo">
@@ -130,7 +132,7 @@ export default {
 			
 			<main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
 				<div>
-				<HomeView @login-success="refresh" @logout-success="refresh" />
+				<RouterView @login-success="refresh" @logout-success="refresh" @new-chat="refresh" @new-group="refresh" @conversation-loaded="refresh" />
 			</div>
 			</main>
 		</div>

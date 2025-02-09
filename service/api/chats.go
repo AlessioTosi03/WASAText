@@ -2,9 +2,13 @@ package api
 
 import (
 	"encoding/json"
+	"fmt"
+	"io"
 	"net/http"
+	"os"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/julienschmidt/httprouter"
 )
@@ -21,20 +25,58 @@ type ChatUsers struct {
 }
 
 func (rt *_router) createGroup(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-	var req Group
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
+	// Parse the multipart form
+	err := r.ParseMultipartForm(10 << 20) // 10 MB limit
+	if err != nil {
+		http.Error(w, "Error parsing form", http.StatusBadRequest)
 		return
 	}
-	defer r.Body.Close()
 
+	// Get name from form data
+	name := r.FormValue("name")
+	if name == "" {
+		http.Error(w, "Group name is required", http.StatusBadRequest)
+		return
+	}
+
+	// Handle file upload
+	file, handler, err := r.FormFile("photo")
+	if err != nil && err != http.ErrMissingFile { // It's okay if no file is provided
+		http.Error(w, "Error retrieving file", http.StatusInternalServerError)
+		return
+	}
+	defer func() {
+		if file != nil {
+			file.Close()
+		}
+	}()
+
+	var photoPath string
+	if file != nil {
+		// Create a unique file name
+		photoPath = fmt.Sprintf("/photos/%d_%s", time.Now().Unix(), handler.Filename)
+
+		// Save the file
+		dst, err := os.Create("/home/aletos/WASAText/webui/public" + photoPath) // Save it in the server
+		if err != nil {
+			http.Error(w, "Error saving file", http.StatusInternalServerError)
+			return
+		}
+		defer dst.Close()
+
+		if _, err = io.Copy(dst, file); err != nil {
+			http.Error(w, "Error writing file", http.StatusInternalServerError)
+			return
+		}
+	}
+
+	// Extract Authorization header
 	authHeader := r.Header.Get("Authorization")
 	if authHeader == "" {
 		http.Error(w, "Missing Authorization header", http.StatusUnauthorized)
 		return
 	}
 
-	// Check if it's in the format "Bearer <user_id>"
 	parts := strings.Split(authHeader, " ")
 	if len(parts) != 2 || parts[0] != "Bearer" {
 		http.Error(w, "Invalid Authorization format", http.StatusUnauthorized)
@@ -47,18 +89,24 @@ func (rt *_router) createGroup(w http.ResponseWriter, r *http.Request, ps httpro
 		return
 	}
 
-	groupID, err := rt.db.CreateGroup(authID, req.Name, req.Photo)
+	// Store group in the database
+	groupID, err := rt.db.CreateGroup(authID, name, photoPath)
 	if err != nil {
 		rt.baseLogger.Errorf("Failed to create group: %v", err)
 		http.Error(w, "Failed to create group", http.StatusInternalServerError)
 		return
 	}
 
-	req.ID = groupID
+	// Create response
+	resp := Group{
+		ID:    groupID,
+		Name:  name,
+		Photo: photoPath,
+	}
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
-	if err := json.NewEncoder(w).Encode(req); err != nil {
+	if err := json.NewEncoder(w).Encode(resp); err != nil {
 		rt.baseLogger.Errorf("Failed to encode response: %v", err)
 		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
 	}
@@ -318,19 +366,18 @@ func (rt *_router) getConversation(w http.ResponseWriter, r *http.Request, ps ht
 
 	// Depending on the conversation type, fetch additional data (chat or group)
 	if conversation.Type == "chat" {
-		chat, err := rt.db.GetChatFromConversation(conversationID)
+		otherUserID, err := rt.db.GetOtherParticipant(conversationID, authID)
 		if err != nil {
-			rt.baseLogger.Errorf("Error retrieving chat for conversation ID %d: %v", conversationID, err)
+			rt.baseLogger.Errorf("Error retrieving other participant for conversation ID %d: %v", conversationID, err)
 			http.Error(w, "Internal server error", http.StatusInternalServerError)
 			return
 		}
-
 		// Return chat data and messages
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		response := map[string]interface{}{
 			"conversation": conversation,
-			"chat":         chat,
+			"chatter":      otherUserID,
 			"messages":     allMessages,
 		}
 		if err := json.NewEncoder(w).Encode(response); err != nil {

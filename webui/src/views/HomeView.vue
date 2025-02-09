@@ -41,16 +41,18 @@ export default {
 
 		newChat() {
 			this.$router.push("/newChat");
+			this.$emit("new-chat");
 		},
 		newGroup() {
 			this.$router.push("/newGroup");
+			this.$emit("new-group");
 		},
 		login() {
 			this.$axios.post("/session", { username: this.username })
 				.then(response => {
 					if (response.data.user_id) {
 						localStorage.setItem("token", response.data.user_id);  // Store the user_id in localStorage
-						
+						localStorage.setItem("username", this.username);
 						this.refresh();  // Check login status
 						// Emit login state to App.vue to notify it to refresh
 						this.$emit("login-success");  // Emit an event to parent when login is successful
@@ -72,6 +74,7 @@ export default {
 	},
 	mounted() {
 		this.refresh();
+		this.username = localStorage.getItem("username");
 	}
 }
 </script>

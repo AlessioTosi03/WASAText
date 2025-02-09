@@ -58,12 +58,18 @@ func (rt *_router) sendMessages(w http.ResponseWriter, r *http.Request, ps httpr
 		http.Error(w, usererror, http.StatusInternalServerError)
 		return
 	}
-
+	username, err := rt.db.GetUsername(authID)
+	if err != nil {
+		rt.baseLogger.Errorf("Failed to get username for userID %d: %v", authID, err)
+		http.Error(w, "Failed to get username", http.StatusInternalServerError)
+		return
+	}
 	message := database.Message{
-		UserID:  authID,
-		ConvoID: conversationID,
-		Text:    req.Text,
-		Pic:     req.Pic,
+		Username:  username,
+		ConvoID:   conversationID,
+		Text:      req.Text,
+		Pic:       req.Pic,
+		Forwarded: false,
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -121,9 +127,15 @@ func (rt *_router) forwardMessages(w http.ResponseWriter, r *http.Request, ps ht
 		http.Error(w, usererror, http.StatusInternalServerError)
 		return
 	}
+	username, err := rt.db.GetUsername(authID)
+	if err != nil {
+		rt.baseLogger.Errorf("Failed to get username for userID %d: %v", authID, err)
+		http.Error(w, "Failed to get username", http.StatusInternalServerError)
+		return
+	}
 
 	message := database.Message{
-		UserID:    authID,
+		Username:  username,
 		ConvoID:   conversationID,
 		Text:      req.Text,
 		Pic:       req.Pic,

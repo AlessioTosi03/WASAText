@@ -1,0 +1,21 @@
+#conversation-title{
+    padding-left: 3%;
+}
+.conv-container{
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
+#message-form{
+    position: absolute;
+    flex-grow: 1;
+    bottom: 5%;
+    padding: 10px;
+    border-top: 1px solid #ccc;
+    width: 80%;
+    height: 40px;
+}
+#message-input{
+    width: 90%;
+    height: 40px;
+}
