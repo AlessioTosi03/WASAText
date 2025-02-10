@@ -10,6 +10,8 @@ export default {
 			errormsg: null,
 			loading: false,
 			conversations: [],
+			username: "",
+			photo: "",
 		}
 	},
 	components: {
@@ -30,7 +32,8 @@ export default {
 				this.loading = false;
 				return;
 			}
-
+			this.username = localStorage.getItem("username");
+			this.photo = localStorage.getItem("propic");
 			try {
 				let response = await this.$axios.get("/stream", {
 					headers: { Authorization: `Bearer ${token}` }
@@ -64,7 +67,14 @@ export default {
 <template>
 
 	<header class="navbar navbar-dark sticky-top bg-dark flex-md-nowrap p-0 shadow">
-		<a class="navbar-brand col-md-3 col-lg-2 me-0 px-3 fs-6" href="#/">Example App</a>
+		<a class="navbar-brand col-md-3 col-lg-2 me-0 px-3 fs-6" v-if="isLoggedIn" href="#/">
+			<img :src="photo" width="40" height="40" class="profile-pic" id="profile-pic">
+			<p class="profile-name">{{ this.username }}</p>
+		</a>
+		<div class="navbar-brand col-md-3 col-lg-2 me-0 px-3 fs-6" v-else>
+			<img src="/photos/default.png" width="40" height="40" class="profile-pic" id="profile-pic">
+			<p class="profile-name">Guest</p>
+		</div>
 		<button class="navbar-toggler position-absolute d-md-none collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#sidebarMenu" aria-controls="sidebarMenu" aria-expanded="false" aria-label="Toggle navigation">
 			<span class="navbar-toggler-icon"></span>
 		</button>
@@ -132,7 +142,7 @@ export default {
 			
 			<main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
 				<div>
-				<RouterView @login-success="refresh" @logout-success="refresh" @new-chat="refresh" @new-group="refresh" @conversation-loaded="refresh" />
+				<RouterView @login-success="refresh" @logout-success="refresh" @new-chat="refresh" @new-group="refresh" @conversation-loaded="refresh" @group-left="refresh" @group-added="refresh"/>
 			</div>
 			</main>
 		</div>

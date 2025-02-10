@@ -1,21 +1,70 @@
+.conv{
+    position: fixed;
+    background-color: white;
+    width: 80%;
+    display: flex;
+    gap: 10px;
+}
 #conversation-title{
     padding-left: 3%;
+}
+#leave-group{
+    position: relative;
+    left: 50%;
+    width:110px;
+    height:40px;
+    color: rgb(205, 1, 1);
+    border-color: rgb(205, 1, 1);
+}
+#leave-group:hover{
+    background-color:rgb(255, 208, 208);
+}
+#leave-group:active{
+    background-color:rgb(255, 208, 208);
+}
+#add-to-group{
+    position: relative;
+    left: 50%;
+    width:110px;
+    height:40px;
+    padding-left: 10px;
 }
 .conv-container{
     display: flex;
     flex-direction: column;
     min-height: 100vh;
 }
+#messages-list{
+    padding-top: 100px;
+    padding-bottom: 60px;
+    overflow-y: auto; /* Scorrimento verticale se necessario */
+}
 #message-form{
-    position: absolute;
+    position: fixed;
     flex-grow: 1;
-    bottom: 5%;
+    bottom: 0px;
     padding: 10px;
     border-top: 1px solid #ccc;
     width: 80%;
-    height: 40px;
+    height: 60px;
+    background-color: white;
 }
 #message-input{
-    width: 90%;
+    position: relative;
+    width: 70%;
     height: 40px;
+}#pic-container{
+    display: flex;
+    width: 200px;
+    height: 200px;
+    flex-direction: row;
+    padding: 10px;
+    border: 1px solid #ccc;
+    justify-content: center;
+}
+.btn{
+    position:fixed;
+}
+#message-pic{
+    width: 200px;
 }

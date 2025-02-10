@@ -1,10 +1,10 @@
 package database
 
-func (db *appdbimpl) DoLogin(username string) (int, error) {
-	var userID int
-	err := db.c.QueryRow("SELECT id FROM users WHERE name = ?", userID).Scan(&userID)
+func (db *appdbimpl) DoLogin(userID int) (User, error) {
+	var user User
+	err := db.c.QueryRow("SELECT name, profile_pic FROM users WHERE id = ?", userID).Scan(&user.Username, &user.ProfilePic)
 	if err != nil {
-		return 0, err
+		return User{}, err
 	}
-	return userID, nil
+	return user, nil
 }

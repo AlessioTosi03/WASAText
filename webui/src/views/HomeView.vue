@@ -5,7 +5,8 @@ export default {
 			errormsg: null,
 			loading: false,
 			isLoggedIn: false,
-			username: ""
+			username: "",
+			propic: ""
 		}
 	},
 	methods: {
@@ -50,9 +51,11 @@ export default {
 		login() {
 			this.$axios.post("/session", { username: this.username })
 				.then(response => {
-					if (response.data.user_id) {
-						localStorage.setItem("token", response.data.user_id);  // Store the user_id in localStorage
-						localStorage.setItem("username", this.username);
+					console.log(response.data);
+					if (response.data) {
+						localStorage.setItem("token", response.data.id);  // Store the user_id in localStorage
+						localStorage.setItem("username", response.data.username);
+						localStorage.setItem("propic", response.data.profile_pic);
 						this.refresh();  // Check login status
 						// Emit login state to App.vue to notify it to refresh
 						this.$emit("login-success");  // Emit an event to parent when login is successful
@@ -66,6 +69,8 @@ export default {
 		},
 		logout() {
 			localStorage.removeItem("token");
+			localStorage.removeItem("username");
+			localStorage.removeItem("propic");
 			this.isLoggedIn = false;
 			this.$router.push("/");
 			this.refresh();  // Check login status
@@ -75,6 +80,7 @@ export default {
 	mounted() {
 		this.refresh();
 		this.username = localStorage.getItem("username");
+		this.propic = localStorage.getItem("propic");
 	}
 }
 </script>

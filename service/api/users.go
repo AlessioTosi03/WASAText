@@ -8,6 +8,8 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/AlessioTosi03/WASAText/service/database"
+
 	"github.com/julienschmidt/httprouter"
 )
 
@@ -33,9 +35,10 @@ func (rt *_router) doLogin(w http.ResponseWriter, r *http.Request, ps httprouter
 		http.Error(w, "Username cannot be empty", http.StatusBadRequest)
 		return
 	}
+	var userID int
+	var user database.User
 
 	// Check if the user exists
-	var userID int
 	userID, err := rt.db.GetUserIDByUsername(req.Username)
 	if err == sql.ErrNoRows {
 		// User doesn't exist, create a new one
@@ -50,11 +53,18 @@ func (rt *_router) doLogin(w http.ResponseWriter, r *http.Request, ps httprouter
 		http.Error(w, "Database error", http.StatusInternalServerError)
 		return
 	}
-
-	// Return the user ID as the authentication token
+	user, err = rt.db.DoLogin(userID)
+	if err != nil {
+		rt.baseLogger.Errorf("Failed to login user %s: %v", req.Username, err)
+		http.Error(w, "Failed to login user", http.StatusInternalServerError)
+		return
+	}
+	if user.ProfilePic == "default" {
+		user.ProfilePic = "/photos/default.png"
+	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(map[string]int{"user_id": userID})
+	json.NewEncoder(w).Encode(user)
 }
 
 // setMyUserName handles the PUT request to update the username

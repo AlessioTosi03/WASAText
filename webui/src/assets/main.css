@@ -12,6 +12,14 @@
 	}
 }
 
+.profile-name{
+	position: relative;
+	height: 40px;
+	padding-top: 7px;
+	margin: 0%;
+	text-decoration: none;
+}
+
 .b-example-divider {
 	height: 3rem;
 	background-color: rgba(0 0 0 / 10%);
@@ -61,4 +69,19 @@
 
 .sidebar-heading {
 	padding-bottom: 0.75rem;
+}
+
+.navbar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    z-index: 1000; /* Assicura che stia sopra gli altri elementi */
+}
+.navbar-brand {
+	display: flex;
+	gap: 10px;
+}
+.container-fluid{
+	padding-top: 46px; /* Altezza della navbar */
 }

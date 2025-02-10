@@ -2,19 +2,57 @@ package api
 
 import (
 	"encoding/json"
+	"fmt"
+	"io"
 	"net/http"
+	"os"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/AlessioTosi03/WASAText/service/database"
 	"github.com/julienschmidt/httprouter"
 )
 
 func (rt *_router) sendMessages(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-	var req database.Message
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
+	err := r.ParseMultipartForm(10 << 20) // 10 MB limit
+	if err != nil {
+		http.Error(w, "Error parsing form", http.StatusBadRequest)
 		return
+	}
+
+	// Get name from form data
+	text := r.FormValue("text")
+
+	// Handle file upload
+	file, handler, err := r.FormFile("photo")
+	if err != nil && err != http.ErrMissingFile { // It's okay if no file is provided
+		http.Error(w, "Error retrieving file", http.StatusInternalServerError)
+		return
+	}
+	defer func() {
+		if file != nil {
+			file.Close()
+		}
+	}()
+
+	var photoPath string
+	if file != nil {
+		// Create a unique file name
+		photoPath = fmt.Sprintf("/messages/%d_%s", time.Now().Unix(), handler.Filename)
+
+		// Save the file
+		dst, err := os.Create("/home/aletos/WASAText/webui/public" + photoPath) // Save it in the server
+		if err != nil {
+			http.Error(w, "Error saving file", http.StatusInternalServerError)
+			return
+		}
+		defer dst.Close()
+
+		if _, err = io.Copy(dst, file); err != nil {
+			http.Error(w, "Error writing file", http.StatusInternalServerError)
+			return
+		}
 	}
 
 	authHeader := r.Header.Get("Authorization")
@@ -51,7 +89,7 @@ func (rt *_router) sendMessages(w http.ResponseWriter, r *http.Request, ps httpr
 		return
 	}
 
-	err = rt.db.SendMessage(authID, conversationID, req.Text, req.Pic)
+	err = rt.db.SendMessage(authID, conversationID, text, photoPath)
 	if err != nil {
 		rt.baseLogger.Errorf("Failed to send message for userID %d: %v", authID, err)
 		usererror := "Failed to send message"
@@ -67,9 +105,9 @@ func (rt *_router) sendMessages(w http.ResponseWriter, r *http.Request, ps httpr
 	message := database.Message{
 		Username:  username,
 		ConvoID:   conversationID,
-		Text:      req.Text,
-		Pic:       req.Pic,
-		Forwarded: false,
+		Text:      text,
+		Pic:       photoPath,
+		Forwarded: 0,
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -139,7 +177,7 @@ func (rt *_router) forwardMessages(w http.ResponseWriter, r *http.Request, ps ht
 		ConvoID:   conversationID,
 		Text:      req.Text,
 		Pic:       req.Pic,
-		Forwarded: true,
+		Forwarded: 1,
 	}
 
 	w.Header().Set("Content-Type", "application/json")

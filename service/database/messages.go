@@ -6,7 +6,7 @@ type Message struct {
 	ConvoID   int    `json:"convo_id"`
 	Text      string `json:"text"`
 	Pic       string `json:"pic"`
-	Forwarded bool   `json:"forwarded"`
+	Forwarded int    `json:"forwarded"`
 }
 
 func (db *appdbimpl) SendMessage(userID int, conversationID int, message string, picture string) error {
