@@ -12,6 +12,7 @@ export default {
 			conversations: [],
 			username: "",
 			photo: "",
+			user_url: "/Users/"
 		}
 	},
 	components: {
@@ -34,6 +35,8 @@ export default {
 			}
 			this.username = localStorage.getItem("username");
 			this.photo = localStorage.getItem("propic");
+			this.user_url = "/Users/" + localStorage.getItem("token");
+			console.log(this.user_url);
 			try {
 				let response = await this.$axios.get("/stream", {
 					headers: { Authorization: `Bearer ${token}` }
@@ -67,10 +70,10 @@ export default {
 <template>
 
 	<header class="navbar navbar-dark sticky-top bg-dark flex-md-nowrap p-0 shadow">
-		<a class="navbar-brand col-md-3 col-lg-2 me-0 px-3 fs-6" v-if="isLoggedIn" href="#/">
+		<RouterLink class="navbar-brand col-md-3 col-lg-2 me-0 px-3 fs-6" v-if="isLoggedIn" :to=user_url>
 			<img :src="photo" width="40" height="40" class="profile-pic" id="profile-pic">
 			<p class="profile-name">{{ this.username }}</p>
-		</a>
+		</RouterLink>
 		<div class="navbar-brand col-md-3 col-lg-2 me-0 px-3 fs-6" v-else>
 			<img src="/photos/default.png" width="40" height="40" class="profile-pic" id="profile-pic">
 			<p class="profile-name">Guest</p>
@@ -84,11 +87,21 @@ export default {
 		<div class="row">
 			<nav id="sidebarMenu" class="col-md-3 col-lg-2 d-md-block bg-light sidebar collapse">
 				<div class="position-sticky pt-3 sidebar-sticky">
+
+					<ul class="nav flex-column">
+						<li class="nav-item" id="home-container">
+							<RouterLink to="/" class="nav-link">
+								<svg class="feather" id="home-svg"><use href="/feather-sprite-v4.29.0.svg#home"/></svg>
+								Home
+							</RouterLink>
+						</li>
+					</ul>
+
 					<h6 class="sidebar-heading d-flex justify-content-between align-items-center px-3 mt-4 mb-1 text-muted text-uppercase">
 						<span>Conversations</span>
 					</h6>
 					<ul class = "conversations-list">
-						<li v-for="(c, index) in conversations" :key="index" class="nav-item">
+						<li v-for="(c, index) in conversations" :key="index" id="conv-container" class="nav-item">
 							<router-link  :to="'/chat/' + c.conversation.id + '/messages'">
 									<!-- If it's a group conversation, show the group name -->
 									<div v-if="c.conversation.type === 'group'" class = "conversation-item">
@@ -104,45 +117,13 @@ export default {
 							</router-link>
 						</li>
 					</ul>
-
-					<ul class="nav flex-column">
-						<li class="nav-item">
-							<RouterLink to="/" class="nav-link">
-								<svg class="feather"><use href="/feather-sprite-v4.29.0.svg#home"/></svg>
-								Home
-							</RouterLink>
-						</li>
-						<li class="nav-item">
-							<RouterLink to="/link1" class="nav-link">
-								<svg class="feather"><use href="/feather-sprite-v4.29.0.svg#layout"/></svg>
-								Menu item 1
-							</RouterLink>
-						</li>
-						<li class="nav-item">
-							<RouterLink to="/link2" class="nav-link">
-								<svg class="feather"><use href="/feather-sprite-v4.29.0.svg#key"/></svg>
-								Menu item 2
-							</RouterLink>
-						</li>
-					</ul>
-
-					<h6 class="sidebar-heading d-flex justify-content-between align-items-center px-3 mt-4 mb-1 text-muted text-uppercase">
-						<span>Secondary menu</span>
-					</h6>
-					<ul class="nav flex-column">
-						<li class="nav-item">
-							<RouterLink :to="'/some/' + 'variable_here' + '/path'" class="nav-link">
-								<svg class="feather"><use href="/feather-sprite-v4.29.0.svg#file-text"/></svg>
-								Item 1
-							</RouterLink>
-						</li>
-					</ul>
 				</div>
 			</nav>
 			
 			<main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
-				<div>
-				<RouterView @login-success="refresh" @logout-success="refresh" @new-chat="refresh" @new-group="refresh" @conversation-loaded="refresh" @group-left="refresh" @group-added="refresh"/>
+				<div id="content" >
+					
+				<RouterView @login-success="refresh" @logout-success="refresh" @new-chat="refresh" @new-group="refresh" @conversation-loaded="refresh" @group-left="refresh" @group-added="refresh" @username-changed="refresh" @set-propic="refresh"/>
 			</div>
 			</main>
 		</div>
@@ -150,4 +131,8 @@ export default {
 </template>
 
 <style>
+	#content{
+		position: relative;
+		top: 20px;
+	}
 </style>

@@ -9,6 +9,7 @@ import './assets/dashboard.css'
 import './assets/main.css'
 import './assets/stream.css'
 import './assets/messages.css'
+import './assets/user.css'
 
 const app = createApp(App)
 app.config.globalProperties.$axios = axios;

@@ -4,9 +4,12 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
+	"os"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/AlessioTosi03/WASAText/service/database"
 
@@ -130,6 +133,7 @@ func (rt *_router) setMyUserName(w http.ResponseWriter, r *http.Request, ps http
 }
 
 func (rt *_router) setMyPhoto(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+
 	authHeader := r.Header.Get("Authorization")
 	if authHeader == "" {
 		http.Error(w, "Missing Authorization header", http.StatusUnauthorized)
@@ -149,11 +153,47 @@ func (rt *_router) setMyPhoto(w http.ResponseWriter, r *http.Request, ps httprou
 		return
 	}
 
-	var req User
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
+	//dealing with the file
+
+	err = r.ParseMultipartForm(10 << 20) // 10 MB limit
+	if err != nil {
+		http.Error(w, "Error parsing form", http.StatusBadRequest)
 		return
 	}
+
+	// Handle file upload for profile picture
+	file, handler, err := r.FormFile("photo")
+	if err != nil && err != http.ErrMissingFile { // It's okay if no file is provided
+		http.Error(w, "Error retrieving file", http.StatusInternalServerError)
+		return
+	}
+	defer func() {
+		if file != nil {
+			file.Close()
+		}
+	}()
+
+	var photoPath string
+	if file != nil {
+		// Create a unique file name for the user's profile picture
+		photoPath = fmt.Sprintf("/profiles/%d_%s", time.Now().Unix(), handler.Filename)
+
+		// Save the file to the server
+		dst, err := os.Create("/home/aletos/WASAText/webui/public" + photoPath) // Save it in the server's public directory
+		if err != nil {
+			rt.baseLogger.Errorf("Error saving file: %v", err)
+			http.Error(w, "Error saving file", http.StatusInternalServerError)
+			return
+		}
+		defer dst.Close()
+
+		// Copy the file content to the destination
+		if _, err = io.Copy(dst, file); err != nil {
+			http.Error(w, "Error writing file", http.StatusInternalServerError)
+			return
+		}
+	}
+
 	userIDStr := ps.ByName("UserID")
 	userID, _ := strconv.Atoi(userIDStr)
 
@@ -162,23 +202,18 @@ func (rt *_router) setMyPhoto(w http.ResponseWriter, r *http.Request, ps httprou
 		return
 	}
 	// Update the username in the database
-	err = rt.db.SetMyPhoto(userID, req.ProfilePic)
+	err = rt.db.SetMyPhoto(userID, photoPath)
 	if err != nil {
 		rt.baseLogger.Errorf("Failed to update profile pic for userID %d: %v", userID, err)
-		usererror := fmt.Sprintf("Failed to update profile pic: %s %d", req.Username, userID)
+		usererror := fmt.Sprintf("Failed to update profile pic for userID: %d", userID)
 		http.Error(w, usererror, http.StatusInternalServerError)
 		return
 	}
-
-	user := User{
-		ID:         userID,
-		Username:   req.Username,
-		ProfilePic: req.ProfilePic,
-	}
-
 	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	if err := json.NewEncoder(w).Encode(user); err != nil {
+	response := map[string]interface{}{
+		"photo_path": photoPath,
+	}
+	if err := json.NewEncoder(w).Encode(response); err != nil {
 		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
 	}
 }

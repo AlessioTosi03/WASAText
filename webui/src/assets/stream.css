@@ -30,7 +30,11 @@ ul.conversations-list {
 	font-size: 1em;
 	font-weight: bold;
 	position: absolute;
-	left: 80px;
+	left: 70px;
 	top: 30%;
 	flex-grow: 1;
+}
+
+#conv-container{
+	padding-left: 20px;
 }

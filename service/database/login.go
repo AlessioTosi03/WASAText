@@ -6,5 +6,6 @@ func (db *appdbimpl) DoLogin(userID int) (User, error) {
 	if err != nil {
 		return User{}, err
 	}
+	user.ID = userID
 	return user, nil
 }

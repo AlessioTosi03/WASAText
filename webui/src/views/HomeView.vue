@@ -72,13 +72,14 @@ export default {
 			localStorage.removeItem("username");
 			localStorage.removeItem("propic");
 			this.isLoggedIn = false;
-			this.$router.push("/");
+			this.$router.replace("/");
 			this.refresh();  // Check login status
 			this.$emit("logout-success");  // Emit an event to parent when login is successful
 		},
 	},
 	mounted() {
 		this.refresh();
+		this.id = localStorage.getItem("token");
 		this.username = localStorage.getItem("username");
 		this.propic = localStorage.getItem("propic");
 	}
