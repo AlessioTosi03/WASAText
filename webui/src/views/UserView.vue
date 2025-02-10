@@ -23,7 +23,7 @@ export default {
                 this.errormsg = "No token found. Please log in.";
                 return;
             }
-            this.url = "/Users/" + localStorage.getItem("token");
+            this.url = "/users/" + localStorage.getItem("token");
             try {
                 await this.$axios.put(this.url + "/name", { username: newUsername }, { 
                     headers: { Authorization: `Bearer ${token}` }
@@ -46,7 +46,7 @@ export default {
 					this.loading = false;
 					return;
 				}
-                this.url = "/Users/" + localStorage.getItem("token") + "/photo";
+                this.url = "/users/" + localStorage.getItem("token") + "/photo";
                 const formData = new FormData();
                 if(this.file){
                     formData.append("photo", this.file);

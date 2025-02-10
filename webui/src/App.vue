@@ -12,7 +12,7 @@ export default {
 			conversations: [],
 			username: "",
 			photo: "",
-			user_url: "/Users/"
+			user_url: "/users/"
 		}
 	},
 	components: {
@@ -35,7 +35,7 @@ export default {
 			}
 			this.username = localStorage.getItem("username");
 			this.photo = localStorage.getItem("propic");
-			this.user_url = "/Users/" + localStorage.getItem("token");
+			this.user_url = "/users/" + localStorage.getItem("token");
 			console.log(this.user_url);
 			try {
 				let response = await this.$axios.get("/stream", {

@@ -14,7 +14,7 @@ import (
 	"github.com/julienschmidt/httprouter"
 )
 
-func (rt *_router) sendMessages(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+func (rt *_router) sendMessage(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	err := r.ParseMultipartForm(10 << 20) // 10 MB limit
 	if err != nil {
 		http.Error(w, "Error parsing form", http.StatusBadRequest)
@@ -117,7 +117,7 @@ func (rt *_router) sendMessages(w http.ResponseWriter, r *http.Request, ps httpr
 	}
 }
 
-func (rt *_router) forwardMessages(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+func (rt *_router) forwardMessage(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	var req database.Message
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, "Invalid request body", http.StatusBadRequest)

@@ -295,19 +295,6 @@ components:
       allowEmptyValue: false
       
 paths:
-  /index:
-    get:
-      tags: ["Get services"]
-      operationId: index
-      summary: Get an index
-      description: |-
-        This is an example of an index API description
-      responses:
-        "200":
-          {$ref: "#/components/responses/GoodRequest"}
-        "400": { $ref: "#/components/responses/BadRequest" }
-        "500": { $ref: "#/components/responses/InternalServerError" }
-  
   /session:
     post:
       tags: ["login"]
