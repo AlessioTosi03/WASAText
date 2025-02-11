@@ -15,6 +15,7 @@ export default {
             url: "",
             text: "",
             file: null,
+            showPopup: false, // Controls visibility of the popup
 		}
 	},
 	methods: {
@@ -186,6 +187,82 @@ export default {
             finally {
                 this.loading = false;
             }
+        },
+        async setGroupName(){
+            this.loading = true;
+            this.errormsg = null;
+            const token = localStorage.getItem("token");
+            if (!token) {
+                this.errormsg = "No token found. Please log in.";
+                this.loading = false;
+                return;
+            }
+            const convId = this.$route.params.conversation_id;
+            if (!convId) {
+                this.loading = false;
+                return; // Skip fetching conversation data
+            }
+            this.url = `${convId}`;
+            try {
+                await this.$axios.put(`/chat/${this.url}/name`, {name: this.text}, {
+                    headers: { Authorization: `Bearer ${token}` }
+                });
+                alert("Group name updated successfully!");
+                this.refresh();
+                this.$emit("group-name-updated");
+            } catch (e) {
+                if (e.response && e.response.status === 401) {
+                    localStorage.removeItem("token");
+                    this.errormsg = "Invalid token. Please log in again.";
+                } else {
+                    this.errormsg = `Error: ${e.response ? e.response.data : e.toString()}`;
+                }
+            }
+
+            finally {
+                this.loading = false;
+            }
+        },
+        async setGroupPic(){
+            this.loading = true;
+            this.errormsg = null;
+            const token = localStorage.getItem("token");
+            if (!token) {
+                this.errormsg = "No token found. Please log in.";
+                this.loading = false;
+                return;
+            }
+            const convId = this.$route.params.conversation_id;
+            if (!convId) {
+                this.loading = false;
+                return; // Skip fetching conversation data
+            }
+            this.url = `${convId}`;
+            const formData = new FormData();
+            if (this.file) {
+                formData.append("photo", this.file); // Append the file
+            }
+            try {
+                await this.$axios.put(`/chat/${this.url}/photo`, formData, {
+                    headers: { Authorization: `Bearer ${token}`,
+                                "Content-Type": "multipart/form-data"
+                     }
+                });
+                alert("Group picture updated successfully!");
+                this.refresh();
+                this.$emit("group-pic-updated");
+            } catch (e) {
+                if (e.response && e.response.status === 401) {
+                    localStorage.removeItem("token");
+                    this.errormsg = "Invalid token. Please log in again.";
+                } else {
+                    this.errormsg = `Error: ${e.response ? e.response.data : e.toString()}`;
+                }
+            }
+
+            finally {
+                this.loading = false;
+            }
         }
 	},
     watch: {
@@ -206,7 +283,23 @@ export default {
 		<div v-if="conversation.type === 'group'" class="conv d-flex justify-content-start flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
             <img :src = "group.photo" width="70" height="70" class="conversation" id="conversation-photo">
             <h2 class="conversation" id="conversation-title">{{ group.name }}</h2>
+            <div id="popup-container">
+                <!-- Button to show the popup -->
+                <button @click="showPopup = true">Open Options</button>
 
+                <!-- Popup -->
+                <div v-if="showPopup" class="popup-overlay" @click.self="showPopup = false">
+                <div class="popup-content">
+                    <input type="text" v-model="text" id="set-group-name" placeholder="Type new group name here">
+                    <button @click="setGroupName">Set Name</button>
+                    <br><br>
+                    <input type="file" ref="fileInput" @change="onFileChange" id="set-group-pic" accept="image/*">
+                    <button @click="setGroupPic">Set Picture</button>
+                    <br><br><br>
+                    <button @click="showPopup = false">Close</button>
+                </div>
+                </div>
+            </div>
             <button type="button" id="leave-group" class="btn btn-sm btn-outline-primary" @click="leaveGroup">
                 Leave Group
             </button>

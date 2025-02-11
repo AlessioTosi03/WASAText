@@ -236,13 +236,6 @@ func (rt *_router) setGroupName(w http.ResponseWriter, r *http.Request, ps httpr
 }
 
 func (rt *_router) setGroupPhoto(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-	var req Group
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
-		return
-	}
-	defer r.Body.Close()
-
 	authHeader := r.Header.Get("Authorization")
 	if authHeader == "" {
 		http.Error(w, "Missing Authorization header", http.StatusUnauthorized)
@@ -260,6 +253,47 @@ func (rt *_router) setGroupPhoto(w http.ResponseWriter, r *http.Request, ps http
 	if err != nil {
 		http.Error(w, "Invalid Authorization token", http.StatusUnauthorized)
 		return
+	}
+
+	//dealing with the file
+
+	err = r.ParseMultipartForm(10 << 20) // 10 MB limit
+	if err != nil {
+		http.Error(w, "Error parsing form", http.StatusBadRequest)
+		return
+	}
+
+	// Handle file upload for profile picture
+	file, handler, err := r.FormFile("photo")
+	if err != nil && err != http.ErrMissingFile { // It's okay if no file is provided
+		http.Error(w, "Error retrieving file", http.StatusInternalServerError)
+		return
+	}
+	defer func() {
+		if file != nil {
+			file.Close()
+		}
+	}()
+
+	var photoPath string
+	if file != nil {
+		// Create a unique file name for the user's profile picture
+		photoPath = fmt.Sprintf("/photos/%d_%s", time.Now().Unix(), handler.Filename)
+
+		// Save the file to the server
+		dst, err := os.Create("/home/aletos/WASAText/webui/public" + photoPath) // Save it in the server's public directory
+		if err != nil {
+			rt.baseLogger.Errorf("Error saving file: %v", err)
+			http.Error(w, "Error saving file", http.StatusInternalServerError)
+			return
+		}
+		defer dst.Close()
+
+		// Copy the file content to the destination
+		if _, err = io.Copy(dst, file); err != nil {
+			http.Error(w, "Error writing file", http.StatusInternalServerError)
+			return
+		}
 	}
 
 	conversationIDStr := ps.ByName("ConversationID")
@@ -290,17 +324,17 @@ func (rt *_router) setGroupPhoto(w http.ResponseWriter, r *http.Request, ps http
 		return
 	}
 
-	if err := rt.db.SetGroupPhoto(group.ID, req.Photo); err != nil {
+	if err := rt.db.SetGroupPhoto(group.ID, photoPath); err != nil {
 		rt.baseLogger.Errorf("Failed to update group photo for groupID %d: %v", group.ID, err)
 		http.Error(w, "Failed to update group photo", http.StatusInternalServerError)
 		return
 	}
 
-	group.Photo = req.Photo
-
 	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	if err := json.NewEncoder(w).Encode(group); err != nil {
+	response := map[string]interface{}{
+		"photo_path": photoPath,
+	}
+	if err := json.NewEncoder(w).Encode(response); err != nil {
 		rt.baseLogger.Errorf("Failed to encode response: %v", err)
 		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
 		return

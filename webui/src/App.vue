@@ -123,7 +123,7 @@ export default {
 			<main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
 				<div id="content" >
 					
-				<RouterView @login-success="refresh" @logout-success="refresh" @new-chat="refresh" @new-group="refresh" @conversation-loaded="refresh" @group-left="refresh" @group-added="refresh" @username-changed="refresh" @set-propic="refresh"/>
+				<RouterView @login-success="refresh" @logout-success="refresh" @new-chat="refresh" @new-group="refresh" @conversation-loaded="refresh" @group-left="refresh" @group-added="refresh" @username-changed="refresh" @set-propic="refresh" @group-pic-updated="refresh" @group-name-updated="refresh"></RouterView>
 			</div>
 			</main>
 		</div>
