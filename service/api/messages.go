@@ -217,7 +217,10 @@ func (rt *_router) deleteMessage(w http.ResponseWriter, r *http.Request, ps http
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	w.Write([]byte(`{"message": "Message deleted successfully"}`))
+	_, err = w.Write([]byte(`{"message": "Message deleted successfully"}`))
+	if err != nil {
+		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
+	}
 }
 
 func (rt *_router) commentMessage(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
@@ -336,7 +339,10 @@ func (rt *_router) uncommentMessage(w http.ResponseWriter, r *http.Request, ps h
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	w.Write([]byte(`{"message": "Message uncommented successfully"}`))
+	_, err = w.Write([]byte(`{"message": "Message uncommented successfully"}`))
+	if err != nil {
+		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
+	}
 }
 
 func (rt *_router) getMyReaction(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {

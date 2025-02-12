@@ -67,7 +67,9 @@ func (rt *_router) doLogin(w http.ResponseWriter, r *http.Request, ps httprouter
 	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(user)
+	if err := json.NewEncoder(w).Encode(user); err != nil {
+		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
+	}
 }
 
 // setMyUserName handles the PUT request to update the username
@@ -153,7 +155,7 @@ func (rt *_router) setMyPhoto(w http.ResponseWriter, r *http.Request, ps httprou
 		return
 	}
 
-	//dealing with the file
+	// dealing with the file
 
 	err = r.ParseMultipartForm(10 << 20) // 10 MB limit
 	if err != nil {
@@ -265,7 +267,9 @@ func (rt *_router) addToGroup(w http.ResponseWriter, r *http.Request, ps httprou
 	userID, err = rt.db.GetUserIDByUsername(req.Username)
 	if err != nil {
 		w.WriteHeader(http.StatusNotFound)
-		json.NewEncoder(w).Encode("User not found")
+		if err := json.NewEncoder(w).Encode("User not found"); err != nil {
+			http.Error(w, "Failed to encode response", http.StatusInternalServerError)
+		}
 		return
 	}
 	if err := rt.db.AddToGroup(userID, conversationID); err != nil {
@@ -276,7 +280,10 @@ func (rt *_router) addToGroup(w http.ResponseWriter, r *http.Request, ps httprou
 
 	rt.baseLogger.Infof("Users %v successfully added to conversationId %s", userID, conversationID)
 	w.WriteHeader(http.StatusOK)
-	w.Write([]byte(`{"message": "Users added to group successfully"}`))
+	_, err = w.Write([]byte(`{"message": "Users added to group successfully"}`))
+	if err != nil {
+		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
+	}
 }
 
 func (rt *_router) leaveGroup(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
@@ -313,5 +320,8 @@ func (rt *_router) leaveGroup(w http.ResponseWriter, r *http.Request, ps httprou
 	// Log success and respond with success message
 	rt.baseLogger.Infof("User %d successfully left conversation %d", authID, conversationID)
 	w.WriteHeader(http.StatusOK)
-	w.Write([]byte(`{"message": "Successfully left the group"}`))
+	_, err = w.Write([]byte(`{"message": "Successfully left the group"}`))
+	if err != nil {
+		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
+	}
 }

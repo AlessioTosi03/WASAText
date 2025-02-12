@@ -255,7 +255,7 @@ func (rt *_router) setGroupPhoto(w http.ResponseWriter, r *http.Request, ps http
 		return
 	}
 
-	//dealing with the file
+	// dealing with the file
 
 	err = r.ParseMultipartForm(10 << 20) // 10 MB limit
 	if err != nil {
