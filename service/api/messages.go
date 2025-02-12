@@ -107,7 +107,7 @@ func (rt *_router) sendMessage(w http.ResponseWriter, r *http.Request, ps httpro
 		ConvoID:   conversationID,
 		Text:      text,
 		Pic:       photoPath,
-		Forwarded: 0,
+		Forwarded: false,
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -118,11 +118,16 @@ func (rt *_router) sendMessage(w http.ResponseWriter, r *http.Request, ps httpro
 }
 
 func (rt *_router) forwardMessage(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-	var req database.Message
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+	var response struct {
+		MessageID      int `json:"message_id"`
+		ConversationID int `json:"conversation_id"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&response); err != nil {
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
+	messageID := response.MessageID
+	conversationID := response.ConversationID
 
 	authHeader := r.Header.Get("Authorization")
 	if authHeader == "" {
@@ -143,9 +148,6 @@ func (rt *_router) forwardMessage(w http.ResponseWriter, r *http.Request, ps htt
 		return
 	}
 
-	conversationIDStr := ps.ByName("ConversationID")
-	conversationID, _ := strconv.Atoi(conversationIDStr)
-
 	partecipation, err := rt.db.CheckUserParticipation(authID, conversationID)
 	if err != nil {
 		rt.baseLogger.Errorf("Failed to check user participation: %v", err)
@@ -158,33 +160,16 @@ func (rt *_router) forwardMessage(w http.ResponseWriter, r *http.Request, ps htt
 		return
 	}
 
-	req, err = rt.db.ForwardMessage(authID, conversationID, req.ID)
+	err = rt.db.ForwardMessage(authID, conversationID, messageID)
 	if err != nil {
 		rt.baseLogger.Errorf("Failed to send message for userID %d: %v", authID, err)
 		usererror := "Failed to send message"
 		http.Error(w, usererror, http.StatusInternalServerError)
 		return
 	}
-	username, err := rt.db.GetUsername(authID)
-	if err != nil {
-		rt.baseLogger.Errorf("Failed to get username for userID %d: %v", authID, err)
-		http.Error(w, "Failed to get username", http.StatusInternalServerError)
-		return
-	}
-
-	message := database.Message{
-		Username:  username,
-		ConvoID:   conversationID,
-		Text:      req.Text,
-		Pic:       req.Pic,
-		Forwarded: 1,
-	}
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	if err := json.NewEncoder(w).Encode(message); err != nil {
-		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
-	}
 }
 
 func (rt *_router) deleteMessage(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
@@ -239,13 +224,15 @@ func (rt *_router) commentMessage(w http.ResponseWriter, r *http.Request, ps htt
 	messageIDStr := ps.ByName("MessageID")
 	messageID, _ := strconv.Atoi(messageIDStr)
 
-	var req struct {
-		Comment string `json:"comment"`
+	var requestData struct {
+		SelectedEmoji string `json:"selectedEmoji"`
 	}
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+
+	if err := json.NewDecoder(r.Body).Decode(&requestData); err != nil {
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
+	emoji := requestData.SelectedEmoji
 
 	authHeader := r.Header.Get("Authorization")
 	if authHeader == "" {
@@ -281,7 +268,7 @@ func (rt *_router) commentMessage(w http.ResponseWriter, r *http.Request, ps htt
 		return
 	}
 
-	err = rt.db.CommentMessage(authID, messageID, req.Comment)
+	err = rt.db.CommentMessage(authID, messageID, emoji)
 	if err != nil {
 		rt.baseLogger.Errorf("Failed to comment message for messageID %d: %v", messageID, err)
 		http.Error(w, "Failed to comment message", http.StatusInternalServerError)
@@ -290,7 +277,9 @@ func (rt *_router) commentMessage(w http.ResponseWriter, r *http.Request, ps htt
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	w.Write([]byte(`{"message": "Message commented successfully"}`))
+	if err := json.NewEncoder(w).Encode(emoji); err != nil {
+		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
+	}
 }
 
 func (rt *_router) uncommentMessage(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
@@ -348,4 +337,57 @@ func (rt *_router) uncommentMessage(w http.ResponseWriter, r *http.Request, ps h
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte(`{"message": "Message uncommented successfully"}`))
+}
+
+func (rt *_router) getMyReaction(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	messageIDStr := ps.ByName("MessageID")
+	messageID, _ := strconv.Atoi(messageIDStr)
+
+	authHeader := r.Header.Get("Authorization")
+	if authHeader == "" {
+		http.Error(w, "Missing Authorization header", http.StatusUnauthorized)
+		return
+	}
+
+	// Check if it's in the format "Bearer <user_id>"
+	parts := strings.Split(authHeader, " ")
+	if len(parts) != 2 || parts[0] != "Bearer" {
+		http.Error(w, "Invalid Authorization format", http.StatusUnauthorized)
+		return
+	}
+
+	authID, err := strconv.Atoi(parts[1])
+	if err != nil {
+		http.Error(w, "Invalid Authorization token", http.StatusUnauthorized)
+		return
+	}
+
+	conversationIDStr := ps.ByName("ConversationID")
+	conversationID, _ := strconv.Atoi(conversationIDStr)
+
+	partecipation, err := rt.db.CheckUserParticipation(authID, conversationID)
+	if err != nil {
+		rt.baseLogger.Errorf("Failed to check user participation: %v", err)
+		http.Error(w, "Failed to check user participation", http.StatusInternalServerError)
+		return
+	}
+	if !partecipation {
+		rt.baseLogger.Errorf("User %d is not part of conversation %d", authID, conversationID)
+		http.Error(w, "User is not part of conversation", http.StatusUnauthorized)
+		return
+	}
+
+	var reaction string
+	reaction, err = rt.db.GetMyReaction(authID, messageID)
+	if err != nil {
+		rt.baseLogger.Errorf("Failed to get reaction for messageID %d by userID %d: %v", messageID, authID, err)
+		http.Error(w, "Failed to get reaction", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	if err := json.NewEncoder(w).Encode(reaction); err != nil {
+		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
+	}
 }

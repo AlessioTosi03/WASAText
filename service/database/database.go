@@ -53,6 +53,7 @@ type AppDatabase interface {
 	CreateGroup(userID int, groupName string, photoURL string) (int, error)
 	CreateChat(userID int, otherUserID int) (int, error)
 	GetUsername(userID int) (string, error)
+	GetMyReaction(userID int, messageID int) (string, error)
 	//mains
 	GetUserByReaction(reactionID int) (int, error)
 	SetMyUserName(userID int, name string) error
@@ -63,9 +64,9 @@ type AppDatabase interface {
 	SetGroupPhoto(groupID int, photoURL string) error
 	GetConversation(conversationID int) (Conversation, error)
 	SendMessage(userID int, conversationID int, message string, picture string) error
-	ForwardMessage(userID int, conversationID int, forwardedID int) (Message, error)
+	ForwardMessage(userID int, conversationID int, forwardedID int) error
 	DeleteMessage(messageID int) error
-	CommentMessage(userID int, messageID int, comment string) error
+	CommentMessage(userID int, messageID int, emoji string) error
 	UncommentMessage(userID int, messageID int) (int64, error)
 	CreateUsername(username string) (int, error)
 	DoLogin(userID int) (User, error)

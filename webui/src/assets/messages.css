@@ -35,10 +35,41 @@
     min-height: 100vh;
 }
 #messages-list{
-    padding-top: 100px;
+    margin-top: 100px;
     padding-bottom: 60px;
     overflow-y: auto; /* Scorrimento verticale se necessario */
+
 }
+.message-item{
+    width: 70%;
+
+}
+#forward-message{
+    position: relative;
+    padding-bottom: 0;
+    padding-top: 0;
+    margin-left: 3px;
+}
+#forward-svg{
+    position: relative;
+    top: 0px;
+    width: 15px;
+    height: 15px;
+}
+#delete-message{
+    position: relative;
+    padding-bottom: 0;
+    padding-top: 0;
+    margin-left: 0px;
+}
+#delete-svg{
+    position: relative;
+    top: 0px;
+    width: 15px;
+    height: 15px;
+    color: rgb(195, 21, 21);
+}
+
 #message-form{
     position: fixed;
     flex-grow: 1;
@@ -84,9 +115,37 @@
     align-items: center;
   }
   
-  .popup-content {
-    background: white;
-    padding: 20px;
-    border-radius: 10px;
-    text-align: center;
-  }
+.popup-content {
+background: white;
+padding: 20px;
+border-radius: 10px;
+text-align: center;
+}
+
+#convs-popup{
+    width: 20%;
+    justify-content: center;
+}
+
+#forward-conv{
+    position: absolute;
+    left: 0px;
+    width: 100%;
+    display: flex;
+    justify-items: start;
+}
+
+#forward-box{
+	position: relative;
+	left: 0;
+}
+
+#forwarded-text{
+    display: inline;
+    font-style: oblique;
+    color: rgba(76, 76, 76, 0.774);
+}
+
+.emoji-picker{
+    position: fixed ;
+}

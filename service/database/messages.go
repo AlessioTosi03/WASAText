@@ -1,27 +1,31 @@
 package database
 
+import (
+	"database/sql"
+)
+
 type Message struct {
 	ID        int    `json:"id"`
 	Username  string `json:"username"`
 	ConvoID   int    `json:"convo_id"`
 	Text      string `json:"text"`
 	Pic       string `json:"pic"`
-	Forwarded int    `json:"forwarded"`
+	Forwarded bool   `json:"forwarded"`
 }
 
 func (db *appdbimpl) SendMessage(userID int, conversationID int, message string, picture string) error {
-	_, err := db.c.Exec("INSERT INTO messages (user_id, conversation_id, message_text, image) VALUES (?, ?, ?, ?)", userID, conversationID, message, picture)
+	_, err := db.c.Exec("INSERT INTO messages (user_id, conversation_id, message_text, image, forwarded) VALUES (?, ?, ?, ?, 0)", userID, conversationID, message, picture)
 	return err
 }
 
-func (db *appdbimpl) ForwardMessage(userID int, conversationID int, forwardedID int) (Message, error) {
+func (db *appdbimpl) ForwardMessage(userID int, conversationID int, forwardedID int) error {
 	var message Message
-	err := db.c.QueryRow("SELECT message_text, image FROM messages WHERE id = ?", forwardedID).Scan(&message.Text, &message.Pic)
+	err := db.c.QueryRow("SELECT message_text, image, user_id FROM messages WHERE id = ?", forwardedID).Scan(&message.Text, &message.Pic, &message.Username)
 	if err != nil {
-		return Message{}, err // Handle no user found or other errors
+		return err // Handle no user found or other errors
 	}
 	_, err = db.c.Exec("INSERT INTO messages (user_id, conversation_id, message_text, image, forwarded) VALUES (?, ?, ?, ?, 1)", userID, conversationID, message.Text, message.Pic)
-	return message, err
+	return err
 }
 
 func (db *appdbimpl) DeleteMessage(messageID int) error {
@@ -43,7 +47,7 @@ func (db *appdbimpl) UncommentMessage(userID int, messageID int) (int64, error) 
 }
 
 func (db *appdbimpl) GetMessages(conversationID int) ([]Message, error) {
-	rowsM, errM := db.c.Query("SELECT id, user_id, message_text, image FROM messages WHERE conversation_id = ?", conversationID)
+	rowsM, errM := db.c.Query("SELECT id, user_id, message_text, image, forwarded, conversation_id FROM messages WHERE conversation_id = ?", conversationID)
 	if errM != nil {
 		return nil, errM
 	}
@@ -53,7 +57,7 @@ func (db *appdbimpl) GetMessages(conversationID int) ([]Message, error) {
 		var m Message
 		var UserID int
 		var username string
-		if err := rowsM.Scan(&m.ID, &UserID, &m.Text, &m.Pic); err != nil {
+		if err := rowsM.Scan(&m.ID, &UserID, &m.Text, &m.Pic, &m.Forwarded, &m.ConvoID); err != nil {
 			return nil, err
 		}
 		err := db.c.QueryRow("SELECT name FROM users WHERE id = ?", UserID).Scan(&username)
@@ -82,4 +86,17 @@ func (db *appdbimpl) GetMessageUser(messageID int) (int, error) {
 		return 0, err // Handle no user found or other errors
 	}
 	return userID, nil
+}
+
+func (db *appdbimpl) GetMyReaction(userID int, messageID int) (string, error) {
+	var reaction string
+	err := db.c.QueryRow("SELECT emoji FROM reaction_relation WHERE user_id = ? AND message_id = ?", userID, messageID).Scan(&reaction)
+	if err == sql.ErrNoRows {
+		// No reaction found for the message
+		return "", nil // Returning nil for no reaction found
+	}
+	if err != nil {
+		return "", err // Handle no user found or other errors
+	}
+	return reaction, nil
 }

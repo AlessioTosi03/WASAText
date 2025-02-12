@@ -1,6 +1,7 @@
 {
   "dependencies": {
     "@ibm-cloud/openapi-ruleset-utilities": "^1.7.0",
+    "emoji-picker-element": "^1.26.1",
     "lru-cache": "^11.0.2"
   }
 }

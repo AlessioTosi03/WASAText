@@ -12,7 +12,8 @@ export default {
 			conversations: [],
 			username: "",
 			photo: "",
-			user_url: "/users/"
+			user_url: "/users/",
+			errormsg: null
 		}
 	},
 	components: {
@@ -29,7 +30,6 @@ export default {
 			if (!token) {
 				this.isLoggedIn = false;  // User is NOT logged in
 				this.conversations = [];
-				this.errormsg = "No token found. Please log in.";
 				this.loading = false;
 				return;
 			}
@@ -60,6 +60,11 @@ export default {
 
 			this.loading = false;
 		},
+		async authError() {
+			this.isLoggedIn = false;
+			this.refresh();
+			this.errormsg = "Invalid token. Please log in again.";
+		}
 	},
 	mounted() {
 		this.refresh()
@@ -122,8 +127,8 @@ export default {
 			
 			<main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
 				<div id="content" >
-					
-				<RouterView @login-success="refresh" @logout-success="refresh" @new-chat="refresh" @new-group="refresh" @conversation-loaded="refresh" @group-left="refresh" @group-added="refresh" @username-changed="refresh" @set-propic="refresh" @group-pic-updated="refresh" @group-name-updated="refresh"></RouterView>
+					<ErrorMsg v-if="errormsg" :msg="errormsg"></ErrorMsg>
+				<RouterView @login-success="refresh" @logout-success="refresh" @new-chat="refresh" @new-group="refresh" @conversation-loaded="refresh" @group-left="refresh" @group-added="refresh" @username-changed="refresh" @set-propic="refresh" @group-pic-updated="refresh" @group-name-updated="refresh" @message-forwarded="refresh" @message-deleted="refresh" @auth-error="authError"></RouterView>
 			</div>
 			</main>
 		</div>
