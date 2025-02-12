@@ -415,6 +415,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"emoji-picker-element@npm:^1.26.1":
+  version: 1.26.1
+  resolution: "emoji-picker-element@npm:1.26.1"
+  checksum: 10/4e09472b77c52c4cdd0340cc729cbacffc1f97570ed81d48f68b4a7b562f2c13c7a6101eeef37c8d19a94746d006b9cb6ed3d3ed2b3cddf94f53b6860d121537
+  languageName: node
+  linkType: hard
+
 "emoji-regex@npm:^8.0.0":
   version: 8.0.0
   resolution: "emoji-regex@npm:8.0.0"
@@ -1408,6 +1415,7 @@ __metadata:
   dependencies:
     "@vitejs/plugin-vue": "npm:^3.0.1"
     axios: "npm:0.28.0"
+    emoji-picker-element: "npm:^1.26.1"
     vite: "npm:^3.0.4"
     vue: "npm:^3.2.37"
     vue-router: "npm:^4.1.3"
