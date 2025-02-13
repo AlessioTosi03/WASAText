@@ -113,6 +113,7 @@ export default {
                     this.loading = false;
                     return;
                 }
+                this.url = `/chat/${this.$route.params.conversation_id}/messages`;
                 await this.$axios.post(this.url, formData, {
                     headers: { Authorization: `Bearer ${token}`,
                                 "Content-Type": "multipart/form-data"
@@ -386,7 +387,7 @@ export default {
             }
 
             try {
-                await this.$axios.post(`${this.url}/${message_id}/reactions`, {selectedEmoji: this.selectedEmoji}, {
+                await this.$axios.post(`${this.url}/${message_id}/reaction`, {selectedEmoji: this.selectedEmoji}, {
                     headers: { Authorization: `Bearer ${token}` }
                 });
                 this.refresh();
@@ -423,7 +424,7 @@ export default {
             const convId = this.$route.params.conversation_id;
 
             try {
-                let response = await this.$axios.get(`/chat/${convId}/messages/${message_id}/reactions`, {
+                let response = await this.$axios.get(`/chat/${convId}/messages/${message_id}/reaction`, {
                     headers: { Authorization: `Bearer ${token}` }
                 });
                 console.log(response.data);
@@ -461,7 +462,7 @@ export default {
             const convId = this.$route.params.conversation_id;
 
             try {
-                await this.$axios.delete(`/chat/${convId}/messages/${message_id}/reactions`, {
+                await this.$axios.delete(`/chat/${convId}/messages/${message_id}/reaction`, {
                     headers: { Authorization: `Bearer ${token}` }
                 });
                 this.refresh();

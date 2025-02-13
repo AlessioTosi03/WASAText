@@ -54,10 +54,10 @@ func (rt *_router) createGroup(w http.ResponseWriter, r *http.Request, ps httpro
 	var photoPath string
 	if file != nil {
 		// Create a unique file name
-		photoPath = fmt.Sprintf("/photos/%d_%s", time.Now().Unix(), handler.Filename)
+		photoPath = "/app/public/photos/" + fmt.Sprintf("%d_%s", time.Now().Unix(), handler.Filename)
 
 		// Save the file
-		dst, err := os.Create("/home/aletos/WASAText/webui/public" + photoPath) // Save it in the server
+		dst, err := os.Create(photoPath) // Save it in the server
 		if err != nil {
 			http.Error(w, "Error saving file", http.StatusInternalServerError)
 			return
