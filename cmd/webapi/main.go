@@ -120,7 +120,7 @@ func run() error {
 		return fmt.Errorf("creating the API server instance: %w", err)
 	}
 	router := apirouter.Handler()
-
+	http.Handle("/tmp/", http.StripPrefix("/tmp/", http.FileServer(http.Dir("/tmp"))))
 	router, err = registerWebUI(router)
 	if err != nil {
 		logger.WithError(err).Error("error registering web UI handler")

@@ -1,7 +1,8 @@
 <script setup>
 import { RouterLink, RouterView } from 'vue-router'
-import HomeView from './views//HomeView.vue';
+import HomeView from './views/HomeView.vue';
 import MessagesView from './views/MessagesView.vue';
+import { getUrl } from './services/axios';
 </script>
 <script>
 export default {
@@ -76,8 +77,8 @@ export default {
 
 	<header class="navbar navbar-dark sticky-top bg-dark flex-md-nowrap p-0 shadow">
 		<RouterLink class="navbar-brand col-md-3 col-lg-2 me-0 px-3 fs-6" v-if="isLoggedIn" :to=user_url>
-			<img :src="photo" width="40" height="40" class="profile-pic" id="profile-pic">
-			<p class="profile-name">{{ this.username }}</p>
+			<img :src="getUrl(photo)" width="40" height="40" class="profile-pic" id="profile-pic">
+			<p class="profile-name">{{ username }}</p>
 		</RouterLink>
 		<div class="navbar-brand col-md-3 col-lg-2 me-0 px-3 fs-6" v-else>
 			<img src="/photos/default.png" width="40" height="40" class="profile-pic" id="profile-pic">
@@ -110,13 +111,13 @@ export default {
 							<router-link  :to="'/chat/' + c.conversation.id + '/messages'">
 									<!-- If it's a group conversation, show the group name -->
 									<div v-if="c.conversation.type === 'group'" class = "conversation-item">
-										<img :src="c.group.photo" width="40" height="40" class="conversation" id= "conversation-photo">
+										<img :src="getUrl(c.group.photo)" v-if="isLoggedIn" width="40" height="40" class="conversation" id= "conversation-photo">
 										<p class="conversation" id="conversation-name">{{ c.group.name }}</p> <!-- Group name -->
 									</div>
 
 									<!-- If it's a chat conversation, show the other participant's name -->
 									<div v-else class = "conversation-item">
-										<img :src="c.other_user.profile_pic" width="40" height="40" class="conversation" id="conversation-photo">
+										<img :src="getUrl(c.other_user.profile_pic)" width="40" height="40" class="conversation" id="conversation-photo">
 										<p class="conversation" id="conversation-name">{{ c.other_user.username }}</p>
 									</div>
 							</router-link>

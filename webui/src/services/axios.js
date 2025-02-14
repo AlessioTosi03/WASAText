@@ -5,4 +5,9 @@ const instance = axios.create({
 	timeout: 1000 * 5
 });
 
+export function getUrl (variable) {
+	console.log(variable);
+	return `${__API_URL__}/${variable}`;
+}
+
 export default instance;

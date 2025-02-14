@@ -163,7 +163,7 @@ func (rt *_router) setMyPhoto(w http.ResponseWriter, r *http.Request, ps httprou
 		return
 	}
 
-	// Handle file upload for profile picture
+	// Handle file upload
 	file, handler, err := r.FormFile("photo")
 	if err != nil && err != http.ErrMissingFile { // It's okay if no file is provided
 		http.Error(w, "Error retrieving file", http.StatusInternalServerError)
@@ -176,20 +176,24 @@ func (rt *_router) setMyPhoto(w http.ResponseWriter, r *http.Request, ps httprou
 	}()
 
 	var photoPath string
+	var filename string
 	if file != nil {
-		// Create a unique file name for the user's profile picture
-		photoPath = fmt.Sprintf("/profiles/%d_%s", time.Now().Unix(), handler.Filename)
+		// Create a unique file name
+		photoDir := "/tmp"
+		if err := os.MkdirAll(photoDir, os.ModePerm); err != nil {
+			http.Error(w, "Error creating photo directory", http.StatusInternalServerError)
+		}
+		filename = fmt.Sprintf("%d_%s", time.Now().Unix(), handler.Filename)
+		photoPath = fmt.Sprintf("%s/%s", photoDir, filename)
 
-		// Save the file to the server
-		dst, err := os.Create("/home/aletos/WASAText/webui/public" + photoPath) // Save it in the server's public directory
+		// Save the file
+		dst, err := os.Create(photoPath) // Save it in the server
 		if err != nil {
-			rt.baseLogger.Errorf("Error saving file: %v", err)
 			http.Error(w, "Error saving file", http.StatusInternalServerError)
 			return
 		}
 		defer dst.Close()
 
-		// Copy the file content to the destination
 		if _, err = io.Copy(dst, file); err != nil {
 			http.Error(w, "Error writing file", http.StatusInternalServerError)
 			return
@@ -211,9 +215,10 @@ func (rt *_router) setMyPhoto(w http.ResponseWriter, r *http.Request, ps httprou
 		http.Error(w, usererror, http.StatusInternalServerError)
 		return
 	}
+	photoPath2 := "files/" + filename
 	w.Header().Set("Content-Type", "application/json")
 	response := map[string]interface{}{
-		"photo_path": photoPath,
+		"photo_path": photoPath2,
 	}
 	if err := json.NewEncoder(w).Encode(response); err != nil {
 		http.Error(w, "Failed to encode response", http.StatusInternalServerError)

@@ -1,5 +1,6 @@
 <script setup>
     import 'emoji-picker-element';
+    import { getUrl } from '../services/axios';
 </script>
 <script>
 export default {
@@ -72,12 +73,18 @@ export default {
                 }
                 this.conversation = convData.conversation;
                 this.messages = convData.messages;
-                for (let message of this.messages) {
-                    if (!message.reaction) {
-                        message.reaction = await this.getMyReaction(message.id);
-                        console.log(message)
+                if (this.messages === null) {
+                    this.messages = [];
+                }
+                else {
+                    for (let message of this.messages) {
+                        if (!message.reaction) {
+                            message.reaction = await this.getMyReaction(message.id);
+                            console.log(message)
+                        }
                     }
                 }
+
 				this.isLoggedIn = true;
 
                 this.$emit("conversation-loaded", convData.conversation);
@@ -307,8 +314,7 @@ export default {
                 let response = this.$axios.post(`/chat/${this.url}/forward`, {message_id,conversation_id}, {
                     headers: { Authorization: `Bearer ${token}` }
                 });
-                console.log(response.data);
-                this.messageUser = response.data.message_user;
+
                 alert("Message forwarded successfully!");
                 this.refresh();
                 this.$emit("message-forwarded");
@@ -501,7 +507,7 @@ export default {
 <template>
 	<div class="conv-container">
 		<div v-if="conversation.type === 'group'" style="z-index:1000;" class="conv d-flex justify-content-start flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
-            <img :src = "group.photo" width="70" height="70" class="conversation" id="conversation-photo">
+            <img :src = "getUrl(group.photo)" width="70" height="70" class="conversation" id="conversation-photo">
             <h2 class="conversation" id="conversation-title">{{ group.name }}</h2>
             <div id="popup-container">
                  <!-- Button to show the popup -->
@@ -529,7 +535,7 @@ export default {
         </div>
         <!-- If it's a chat conversation, show the other participant's name -->
         <div v-else style="z-index:1000;" class="conv d-flex justify-content-start flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
-            <img :src = "chatter.profile_pic" width="70" height="70" class="conversation" id="conversation-photo">
+            <img :src = "getUrl(chatter.profile_pic)" width="70" height="70" class="conversation" id="conversation-photo">
             <h2 class="conversation" id="conversation-title">{{ chatter.username }}</h2>
         </div>
         <div id="messages-list" >
@@ -546,13 +552,13 @@ export default {
                                     <button @click="forwardMessage(c.conversation.id,m.id)" class="btn btn-sm" id="forward-conv">
                                         <!-- If it's a group conversation, show the group name -->
                                         <div v-if="c.conversation.type === 'group'"  id="forward-box">
-                                            <img :src="c.group.photo" width="40" height="40" class="conversation" id= "conversation-photo">
+                                            <img :src="getUrl(c.group.photo)" width="40" height="40" class="conversation" id= "conversation-photo">
                                             <p class="conversation" id="conversation-name">{{ c.group.name }}</p> <!-- Group name -->
                                         </div>
 
                                         <!-- If it's a chat conversation, show the other participant's name -->
                                         <div v-else  id="forward-box">
-                                            <img :src="c.other_user.profile_pic" width="40" height="40" class="conversation" id="conversation-photo">
+                                            <img :src="getUrl(c.other_user.profile_pic)" width="40" height="40" class="conversation" id="conversation-photo">
                                             <p class="conversation" id="conversation-name">{{ c.other_user.username }}</p>
                                         </div>
                                     </button>
@@ -576,8 +582,8 @@ export default {
                     <p v-if="m.forwarded==1" id="forwarded-text" style="margin-left: 30%">
                         Forwarded
                     </p>
-                    <div v-if="m.pic" id="pic-container">
-                        <img :src="m.pic">
+                    <div v-if="m.pic != 'files/'" id="pic-container">
+                        <img :src="getUrl(m.pic)">
                     </div>
                 </li>
             </ul>

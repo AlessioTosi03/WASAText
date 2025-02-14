@@ -87,14 +87,136 @@ func New(db *sql.DB) (AppDatabase, error) {
 
 	// Check if table exists. If not, the database is empty, and we need to create the structure
 	var tableName string
-	err := db.QueryRow(`SELECT name FROM sqlite_master WHERE type='table' AND name='example_table';`).Scan(&tableName)
+	err := db.QueryRow(`SELECT name FROM sqlite_master WHERE type='table' AND name='users';`).Scan(&tableName)
 	if errors.Is(err, sql.ErrNoRows) {
-		sqlStmt := `CREATE TABLE example_table (id INTEGER NOT NULL PRIMARY KEY, name TEXT);`
+		sqlStmt := `CREATE TABLE IF NOT EXISTS users (
+					id INTEGER PRIMARY KEY,
+					name TEXT NOT NULL,
+					profile_pic BLOB
+				);`
 		_, err = db.Exec(sqlStmt)
 		if err != nil {
 			return nil, fmt.Errorf("error creating database structure: %w", err)
 		}
 	}
+	err = db.QueryRow(`SELECT name FROM sqlite_master WHERE type='table' AND name='conversations';`).Scan(&tableName)
+	if errors.Is(err, sql.ErrNoRows) {
+		sqlStmt := `CREATE TABLE IF NOT EXISTS conversations (
+					id INTEGER PRIMARY KEY AUTOINCREMENT,
+					type TEXT NOT NULL CHECK (type IN ('chat', 'group')), -- Enforces 'chat' or 'group'
+					created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+					);`
+		_, err = db.Exec(sqlStmt)
+		if err != nil {
+			return nil, fmt.Errorf("error creating database structure: %w", err)
+		}
+	}
+	err = db.QueryRow(`SELECT name FROM sqlite_master WHERE type='table' AND name='chats';`).Scan(&tableName)
+	if errors.Is(err, sql.ErrNoRows) {
+		sqlStmt := `CREATE TABLE IF NOT EXISTS chats (
+					id INTEGER PRIMARY KEY AUTOINCREMENT,
+					conversation_id INTEGER NOT NULL,
+					FOREIGN KEY (conversation_id) REFERENCES conversations(id) ON DELETE CASCADE,
+					UNIQUE (conversation_id) -- Garantisce che ogni chat sia unica
+					);`
+		_, err = db.Exec(sqlStmt)
+		if err != nil {
+			return nil, fmt.Errorf("error creating database structure: %w", err)
+		}
+	}
+	err = db.QueryRow(`SELECT name FROM sqlite_master WHERE type='table' AND name='groups';`).Scan(&tableName)
+	if errors.Is(err, sql.ErrNoRows) {
+		sqlStmt := `CREATE TABLE IF NOT EXISTS groups (
+						id INTEGER PRIMARY KEY,
+						conversation_id INTEGER NOT NULL UNIQUE,
+						group_name TEXT NOT NULL,
+						group_pic BLOB,
+						FOREIGN KEY (conversation_id) REFERENCES conversations(id) ON DELETE CASCADE
+					);`
+		_, err = db.Exec(sqlStmt)
+		if err != nil {
+			return nil, fmt.Errorf("error creating database structure: %w", err)
+		}
+	}
+	err = db.QueryRow(`SELECT name FROM sqlite_master WHERE type='table' AND name='participation_relation';`).Scan(&tableName)
+	if errors.Is(err, sql.ErrNoRows) {
+		sqlStmt := `CREATE TABLE IF NOT EXISTS participant_relation (
+						conversation_id INTEGER NOT NULL,
+						user_id INTEGER NOT NULL,
+						PRIMARY KEY (conversation_id, user_id),
+						FOREIGN KEY (user_id) REFERENCES users(id),
+						FOREIGN KEY (conversation_id) REFERENCES conversations(id)
+					);`
+		_, err = db.Exec(sqlStmt)
+		if err != nil {
+			return nil, fmt.Errorf("error creating database structure: %w", err)
+		}
+	}
+	err = db.QueryRow(`SELECT name FROM sqlite_master WHERE type='table' AND name='messages';`).Scan(&tableName)
+	if errors.Is(err, sql.ErrNoRows) {
+		sqlStmt := `
+				CREATE TABLE IF NOT EXISTS messages (
+					id INTEGER PRIMARY KEY AUTOINCREMENT,
+					conversation_id INTEGER NOT NULL,
+					user_id INTEGER NOT NULL,
+					forwarded BOOLEAN,
+					image BLOB,
+					message_text TEXT NOT NULL,
+					created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+					FOREIGN KEY (conversation_id) REFERENCES conversations(id) ON DELETE CASCADE,
+					FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+				);`
+		_, err = db.Exec(sqlStmt)
+		if err != nil {
+			return nil, fmt.Errorf("error creating database structure: %w", err)
+		}
+	}
+	err = db.QueryRow(`SELECT name FROM sqlite_master WHERE type='table' AND name='message_read_status';`).Scan(&tableName)
+	if errors.Is(err, sql.ErrNoRows) {
+		sqlStmt := `CREATE TABLE IF NOT EXISTS message_read_status (
+						message_id INTEGER NOT NULL UNIQUE,
+						user_id INTEGER NOT NULL UNIQUE,
+						read_timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+						PRIMARY KEY (message_id, user_id),
+						FOREIGN KEY (user_id) REFERENCES users(id),
+						FOREIGN KEY (message_id) REFERENCES messages(id)
+					);`
+		_, err = db.Exec(sqlStmt)
+		if err != nil {
+			return nil, fmt.Errorf("error creating database structure: %w", err)
+		}
+	}
+	err = db.QueryRow(`SELECT name FROM sqlite_master WHERE type='table' AND name='message_received_status';`).Scan(&tableName)
+	if errors.Is(err, sql.ErrNoRows) {
+		sqlStmt := `CREATE TABLE IF NOT EXISTS message_received_status (
+					message_id INTEGER NOT NULL UNIQUE,
+					user_id INTEGER NOT NULL UNIQUE,
+					read_timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+					PRIMARY KEY (message_id, user_id),
+					FOREIGN KEY (user_id) REFERENCES users(id),
+					FOREIGN KEY (message_id) REFERENCES messages(id)
+				);`
+		_, err = db.Exec(sqlStmt)
+		if err != nil {
+			return nil, fmt.Errorf("error creating database structure: %w", err)
+		}
+	}
+	err = db.QueryRow(`SELECT name FROM sqlite_master WHERE type='table' AND name='reaction_relation';`).Scan(&tableName)
+	if errors.Is(err, sql.ErrNoRows) {
+		sqlStmt := `CREATE TABLE IF NOT EXISTS reaction_relation (
+					message_id INTEGER NOT NULL,
+					user_id INTEGER NOT NULL,
+					emoji TEXT,
+					PRIMARY KEY (message_id, user_id),
+					FOREIGN KEY (user_id) REFERENCES users(id),
+					FOREIGN KEY (message_id) REFERENCES messages(id)
+					);`
+		_, err = db.Exec(sqlStmt)
+		if err != nil {
+			return nil, fmt.Errorf("error creating database structure: %w", err)
+		}
+	}
+
 	return &appdbimpl{
 		c: db,
 	}, nil

@@ -52,9 +52,15 @@ func (rt *_router) createGroup(w http.ResponseWriter, r *http.Request, ps httpro
 	}()
 
 	var photoPath string
+	var filename string
 	if file != nil {
 		// Create a unique file name
-		photoPath = "/app/public/photos/" + fmt.Sprintf("%d_%s", time.Now().Unix(), handler.Filename)
+		photoDir := "/tmp"
+		if err := os.MkdirAll(photoDir, os.ModePerm); err != nil {
+			http.Error(w, "Error creating photo directory", http.StatusInternalServerError)
+		}
+		filename = fmt.Sprintf("%d_%s", time.Now().Unix(), handler.Filename)
+		photoPath = fmt.Sprintf("%s/%s", photoDir, filename)
 
 		// Save the file
 		dst, err := os.Create(photoPath) // Save it in the server
@@ -88,9 +94,9 @@ func (rt *_router) createGroup(w http.ResponseWriter, r *http.Request, ps httpro
 		http.Error(w, "Invalid Authorization token", http.StatusUnauthorized)
 		return
 	}
-
+	photoPath2 := "files/" + filename
 	// Store group in the database
-	groupID, err := rt.db.CreateGroup(authID, name, photoPath)
+	groupID, err := rt.db.CreateGroup(authID, name, photoPath2)
 	if err != nil {
 		rt.baseLogger.Errorf("Failed to create group: %v", err)
 		http.Error(w, "Failed to create group", http.StatusInternalServerError)
@@ -101,7 +107,7 @@ func (rt *_router) createGroup(w http.ResponseWriter, r *http.Request, ps httpro
 	resp := Group{
 		ID:    groupID,
 		Name:  name,
-		Photo: photoPath,
+		Photo: "/files/" + filename,
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -263,7 +269,7 @@ func (rt *_router) setGroupPhoto(w http.ResponseWriter, r *http.Request, ps http
 		return
 	}
 
-	// Handle file upload for profile picture
+	// Handle file upload
 	file, handler, err := r.FormFile("photo")
 	if err != nil && err != http.ErrMissingFile { // It's okay if no file is provided
 		http.Error(w, "Error retrieving file", http.StatusInternalServerError)
@@ -276,20 +282,24 @@ func (rt *_router) setGroupPhoto(w http.ResponseWriter, r *http.Request, ps http
 	}()
 
 	var photoPath string
+	var filename string
 	if file != nil {
-		// Create a unique file name for the user's profile picture
-		photoPath = fmt.Sprintf("/photos/%d_%s", time.Now().Unix(), handler.Filename)
+		// Create a unique file name
+		photoDir := "/tmp"
+		if err := os.MkdirAll(photoDir, os.ModePerm); err != nil {
+			http.Error(w, "Error creating photo directory", http.StatusInternalServerError)
+		}
+		filename = fmt.Sprintf("%d_%s", time.Now().Unix(), handler.Filename)
+		photoPath = fmt.Sprintf("%s/%s", photoDir, filename)
 
-		// Save the file to the server
-		dst, err := os.Create("/home/aletos/WASAText/webui/public" + photoPath) // Save it in the server's public directory
+		// Save the file
+		dst, err := os.Create(photoPath) // Save it in the server
 		if err != nil {
-			rt.baseLogger.Errorf("Error saving file: %v", err)
 			http.Error(w, "Error saving file", http.StatusInternalServerError)
 			return
 		}
 		defer dst.Close()
 
-		// Copy the file content to the destination
 		if _, err = io.Copy(dst, file); err != nil {
 			http.Error(w, "Error writing file", http.StatusInternalServerError)
 			return
@@ -324,7 +334,8 @@ func (rt *_router) setGroupPhoto(w http.ResponseWriter, r *http.Request, ps http
 		return
 	}
 
-	if err := rt.db.SetGroupPhoto(group.ID, photoPath); err != nil {
+	photoPath2 := "files/" + filename
+	if err := rt.db.SetGroupPhoto(group.ID, photoPath2); err != nil {
 		rt.baseLogger.Errorf("Failed to update group photo for groupID %d: %v", group.ID, err)
 		http.Error(w, "Failed to update group photo", http.StatusInternalServerError)
 		return
@@ -332,12 +343,11 @@ func (rt *_router) setGroupPhoto(w http.ResponseWriter, r *http.Request, ps http
 
 	w.Header().Set("Content-Type", "application/json")
 	response := map[string]interface{}{
-		"photo_path": photoPath,
+		"photo_path": photoPath2,
 	}
 	if err := json.NewEncoder(w).Encode(response); err != nil {
 		rt.baseLogger.Errorf("Failed to encode response: %v", err)
 		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
-		return
 	}
 }
 
@@ -506,7 +516,7 @@ func (rt *_router) getMyConversations(w http.ResponseWriter, r *http.Request, _ 
 				return
 			}
 			if group.Photo == "default" {
-				group.Photo = "/photos/default.png"
+				group.Photo = "/tmp/default.png"
 			}
 			responseItem["group"] = group
 			responseItem["other_user"] = nil

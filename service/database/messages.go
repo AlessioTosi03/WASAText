@@ -48,6 +48,10 @@ func (db *appdbimpl) UncommentMessage(userID int, messageID int) (int64, error) 
 
 func (db *appdbimpl) GetMessages(conversationID int) ([]Message, error) {
 	rowsM, errM := db.c.Query("SELECT id, user_id, message_text, image, forwarded, conversation_id FROM messages WHERE conversation_id = ?", conversationID)
+	if errM == sql.ErrNoRows {
+		// No reaction found for the message
+		return []Message{}, nil // Returning nil for no reaction found
+	}
 	if errM != nil {
 		return nil, errM
 	}

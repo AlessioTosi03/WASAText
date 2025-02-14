@@ -7,6 +7,7 @@ import (
 // Handler returns an instance of httprouter.Router that handle APIs registered here
 func (rt *_router) Handler() http.Handler {
 	// Register routes
+	rt.router.GET("/files/:photo", rt.serveFile)
 	rt.router.PUT("/users/:UserID/name", rt.setMyUserName)
 	rt.router.PUT("/users/:UserID/photo", rt.setMyPhoto)
 	rt.router.POST("/chat/:ConversationID", rt.addToGroup)

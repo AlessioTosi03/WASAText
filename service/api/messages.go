@@ -37,12 +37,18 @@ func (rt *_router) sendMessage(w http.ResponseWriter, r *http.Request, ps httpro
 	}()
 
 	var photoPath string
+	var filename string
 	if file != nil {
 		// Create a unique file name
-		photoPath = fmt.Sprintf("/messages/%d_%s", time.Now().Unix(), handler.Filename)
+		photoDir := "/tmp"
+		if err := os.MkdirAll(photoDir, os.ModePerm); err != nil {
+			http.Error(w, "Error creating photo directory", http.StatusInternalServerError)
+		}
+		filename = fmt.Sprintf("%d_%s", time.Now().Unix(), handler.Filename)
+		photoPath = fmt.Sprintf("%s/%s", photoDir, filename)
 
 		// Save the file
-		dst, err := os.Create("/home/aletos/WASAText/webui/public" + photoPath) // Save it in the server
+		dst, err := os.Create(photoPath) // Save it in the server
 		if err != nil {
 			http.Error(w, "Error saving file", http.StatusInternalServerError)
 			return
@@ -88,8 +94,8 @@ func (rt *_router) sendMessage(w http.ResponseWriter, r *http.Request, ps httpro
 		http.Error(w, "User is not part of conversation", http.StatusUnauthorized)
 		return
 	}
-
-	err = rt.db.SendMessage(authID, conversationID, text, photoPath)
+	photoPath2 := "files/" + filename
+	err = rt.db.SendMessage(authID, conversationID, text, photoPath2)
 	if err != nil {
 		rt.baseLogger.Errorf("Failed to send message for userID %d: %v", authID, err)
 		usererror := "Failed to send message"
