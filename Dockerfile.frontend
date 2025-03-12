@@ -6,8 +6,8 @@ COPY webui webui
 
 ### Build Vue.js into plain HTML/CSS/JS
 WORKDIR /app/webui
+RUN yarn install --frozen-lockfile
 RUN yarn run build-prod
-
 
 ### Create final container
 FROM nginx:stable
