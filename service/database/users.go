@@ -1,5 +1,10 @@
 package database
 
+import (
+	"database/sql"
+	"fmt"
+)
+
 func (db *appdbimpl) GetUserIDByUsername(username string) (int, error) {
 	var userID int
 	err := db.c.QueryRow("SELECT id FROM users WHERE name = ?", username).Scan(&userID)
@@ -20,8 +25,24 @@ func (db *appdbimpl) CreateUsername(username string) (int, error) {
 
 // SetName updates the username for a given user ID
 func (db *appdbimpl) SetMyUserName(userID int, name string) error {
-	_, err := db.c.Exec("UPDATE users SET name = ? WHERE id = ?", name, userID)
-	return err
+	err := db.c.QueryRow("SELECT name FROM users WHERE name = ?", name).Scan(&name)
+	fmt.Println("Name:", name)
+
+	if err == nil {
+		// Se err è nil, significa che il nome esiste già
+		fmt.Println("Username already taken:", name)
+		return fmt.Errorf("username '%s' is already taken", name)
+	}
+
+	if err != sql.ErrNoRows {
+		// Se c'è un errore diverso da sql.ErrNoRows, ritorniamolo
+		return err
+	}
+	if err == sql.ErrNoRows {
+		_, err := db.c.Exec("UPDATE users SET name = ? WHERE id = ?", name, userID)
+		return err
+	}
+	return nil
 }
 
 func (db *appdbimpl) SetMyPhoto(userID int, profile_pic string) error {

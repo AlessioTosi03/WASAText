@@ -505,6 +505,19 @@ export default {
 </script>
 
 <template>
+    <div class="fixed-top d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3">
+        <h1 class="h2"></h1>
+        <div class="btn-toolbar mb-2 mb-md-0">
+            <div class="btn-group me-2">
+                <button type="button" class="btn btn-sm btn-outline-secondary" @click="refresh">
+                    Refresh
+                </button>
+                <button type="button" class="btn btn-sm btn-outline-secondary" @click="exportList">
+                    Export
+                </button>
+            </div>
+        </div>
+    </div>
 	<div class="conv-container">
 		<div v-if="conversation.type === 'group'" style="z-index:1000;" class="conv d-flex justify-content-start flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
             <img :src = "getUrl(group.photo)" width="70" height="70" class="conversation" id="conversation-photo">
