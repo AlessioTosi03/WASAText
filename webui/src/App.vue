@@ -1,7 +1,5 @@
 <script setup>
 import { RouterLink, RouterView } from 'vue-router'
-import HomeView from './views/HomeView.vue';
-import MessagesView from './views/MessagesView.vue';
 import { getUrl } from './services/axios';
 </script>
 <script>
@@ -13,13 +11,8 @@ export default {
 			conversations: [],
 			username: "",
 			photo: "",
-			user_url: "/users/",
-			errormsg: null
+			user_url: "/users/"
 		}
-	},
-	components: {
-		HomeView,
-		MessagesView
 	},
 	methods: {
 		async refresh() {
