@@ -26,11 +26,9 @@ func (db *appdbimpl) CreateUsername(username string) (int, error) {
 // SetName updates the username for a given user ID
 func (db *appdbimpl) SetMyUserName(userID int, name string) error {
 	err := db.c.QueryRow("SELECT name FROM users WHERE name = ?", name).Scan(&name)
-	fmt.Println("Name:", name)
 
 	if err == nil {
 		// Se err è nil, significa che il nome esiste già
-		fmt.Println("Username already taken:", name)
 		return fmt.Errorf("username '%s' is already taken", name)
 	}
 

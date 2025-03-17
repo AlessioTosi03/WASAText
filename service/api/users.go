@@ -119,8 +119,7 @@ func (rt *_router) setMyUserName(w http.ResponseWriter, r *http.Request, ps http
 			return
 		}
 		rt.baseLogger.Errorf("Failed to update username for userID %d: %v", userID, err)
-		usererror := fmt.Sprintf("Failed to update username: %s %d", req.Username, userID)
-		http.Error(w, usererror, http.StatusInternalServerError)
+		http.Error(w, `{"error: Failed to update username"}`, http.StatusInternalServerError)
 
 		return
 	}
