@@ -114,6 +114,10 @@ func (rt *_router) setMyUserName(w http.ResponseWriter, r *http.Request, ps http
 	// Update the username in the database
 	err = rt.db.SetMyUserName(userID, req.Username)
 	if err != nil {
+		if strings.Contains(err.Error(), "is already taken") {
+			http.Error(w, err.Error(), http.StatusConflict) // 👈 Ritorna 409 al client
+			return
+		}
 		rt.baseLogger.Errorf("Failed to update username for userID %d: %v", userID, err)
 		usererror := fmt.Sprintf("Failed to update username: %s %d", req.Username, userID)
 		http.Error(w, usererror, http.StatusInternalServerError)

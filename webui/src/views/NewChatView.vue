@@ -32,6 +32,7 @@ export default {
 					localStorage.removeItem("token");
 					this.errormsg = "Invalid token. Please log in again.";
 				} else {
+					this.refresh()
 					this.errormsg = `Error: ${e.response ? e.response.data : e.toString()}`;
 				}
 			}

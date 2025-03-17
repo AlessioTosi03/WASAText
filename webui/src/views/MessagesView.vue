@@ -354,7 +354,6 @@ export default {
                 await this.$axios.delete(`/chat/${convId}/messages/${message_id}`, {
                     headers: { Authorization: `Bearer ${token}` }
                 });
-                alert("Message deleted successfully!");
                 this.refresh();
                 this.$emit("message-deleted");
             } catch (e) {

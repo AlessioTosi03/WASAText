@@ -32,7 +32,12 @@ export default {
                 this.username = newUsername;
                 this.$emit("username-changed", newUsername);
             } catch (e) {
-                this.errormsg = e.toString();
+                if (e.response?.status === 409) {
+                    this.errormsg = "Username already taken!";
+                }
+                else{
+                    this.errormsg = e.toString();
+                }
             }
         },
         async setUserPicture(){
