@@ -1,6 +1,6 @@
 openapi: 3.0.3
 servers:
-  - url: "http://localhost:3000/v1"
+  - url: "/v1"
 info:
   title: WASAText
   description: Fantastic Coffee (decaffeinated), the skeleton project for Web and Software architecture course

@@ -498,6 +498,7 @@ export default {
     mounted() {
         this.refresh()
         this.username = localStorage.getItem("username");
+        setInterval(this.refresh, 6000);
     }
 
 }
