@@ -76,3 +76,30 @@ func (db *appdbimpl) GetUsername(userID int) (string, error) {
 	}
 	return username, nil
 }
+
+func (db *appdbimpl) GetAllUsers() ([]string, error) {
+	var usernames []string
+
+	// Esegui la query per ottenere tutti gli utenti
+	rows, err := db.c.Query("SELECT name FROM users")
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close() // Assicura che le righe vengano chiuse alla fine
+
+	// Itera sui risultati e aggiungi i nomi utente alla slice
+	for rows.Next() {
+		var username string
+		if err := rows.Scan(&username); err != nil {
+			return nil, err
+		}
+		usernames = append(usernames, username)
+	}
+
+	// Controlla eventuali errori dopo l'iterazione
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return usernames, nil
+}

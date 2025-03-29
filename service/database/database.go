@@ -69,6 +69,7 @@ type AppDatabase interface {
 	CommentMessage(userID int, messageID int, emoji string) error
 	UncommentMessage(userID int, messageID int) (int64, error)
 	CreateUsername(username string) (int, error)
+	GetAllUsers() ([]string, error)
 	DoLogin(userID int) (User, error)
 	// others
 	Ping() error

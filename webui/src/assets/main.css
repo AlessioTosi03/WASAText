@@ -89,6 +89,32 @@
 	display: flex;
 	gap: 10px;
 }
+
+.search-container{
+	position: absolute;
+	left: 250px;
+	width: 800px;
+}
+
+.dropdown {
+	position: fixed;
+	width: 80%;
+	background: white;
+	border: 1px solid #ccc;
+	max-height: 200px;
+	overflow-y: auto;
+	z-index: 1000;
+}
+
+.dropdown div {
+	padding: 8px;
+	cursor: pointer;
+}
+
+.dropdown div:hover {
+	background: #f0f0f0;
+}
+
 .container-fluid{
 	padding-top: 46px; /* Altezza della navbar */
 }

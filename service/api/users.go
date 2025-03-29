@@ -333,3 +333,28 @@ func (rt *_router) leaveGroup(w http.ResponseWriter, r *http.Request, ps httprou
 		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
 	}
 }
+
+func (rt *_router) getAllUsers(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	var usernames []string
+	var err error
+	if usernames, err = rt.db.GetAllUsers(); err != nil {
+		rt.baseLogger.Errorf("Failed to get all users", err)
+		http.Error(w, `{"error": "Failed to get the users"}`, http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(usernames)
+}
+
+func (rt *_router) getUserIDbyUsername(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	username := ps.ByName("username")
+	userID, err := rt.db.GetUserIDByUsername(username)
+	if err != nil {
+		rt.baseLogger.Errorf("Failed to get userID by username %s: %v", username, err)
+		http.Error(w, "Failed to get userID by username", http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(userID)
+}

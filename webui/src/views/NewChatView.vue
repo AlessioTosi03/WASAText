@@ -19,6 +19,7 @@ export default {
 					this.loading = false;
 					return;
 				}
+				
 				await this.$axios.post("/newChat", {
 					chatter: this.chatter,
 					id: Number(localStorage.getItem("token"))
@@ -32,7 +33,6 @@ export default {
 					localStorage.removeItem("token");
 					this.errormsg = "Invalid token. Please log in again.";
 				} else {
-					this.refresh()
 					this.errormsg = `Error: ${e.response ? e.response.data : e.toString()}`;
 				}
 			}

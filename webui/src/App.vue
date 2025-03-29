@@ -6,15 +6,30 @@ import { getUrl } from './services/axios';
 export default {
 	data: function() {
 		return {
+			isLoggedIn: false,
 			errormsg: null,
 			loading: false,
 			conversations: [],
 			username: "",
 			photo: "",
-			user_url: "/users/"
+			user_url: "/users/",
+			users: [],
+			query: "",
+			showDiv: false,
+			showResults: false
 		}
 	},
 	methods: {
+		handleLoginSuccess() {
+			this.refresh();  // Call the refresh method
+			this.showDiv = true;  // Change the variable (set to false in this case)
+			this.isLoggedIn= true;
+		},
+		handleLogoutSuccess() {
+			this.refresh();  // Call the refresh method
+			this.showDiv = false;  // Change the variable (set to false in this case)
+			this.isLoggedIn= false;
+		},
 		async refresh() {
 			this.loading = true;
 			this.errormsg = null;
@@ -39,6 +54,8 @@ export default {
 				// If the request is successful, update conversations
 				this.conversations = response.data;
 				this.isLoggedIn = true;  // User is logged in
+
+				await this.fetchUsers();
 			} catch (e) {
 				if (e.response && e.response.status === 401) {
 					// Invalid token, user should log in again
@@ -58,10 +75,76 @@ export default {
 			this.isLoggedIn = false;
 			this.refresh();
 			this.errormsg = "Invalid token. Please log in again.";
-		}
+		},
+		async fetchUsers() {
+			this.loading = true;
+			this.errormsg = null;
+
+			try {
+				let response = await this.$axios.get("/users");  // API Go
+				console.log("Users received from API:", response.data); // <-- DEBUG
+				const currentUser = localStorage.getItem("username");
+
+				// Filtra l'utente corrente dalla lista
+				this.users = response.data.filter(user => user !== currentUser);
+			} catch (e) {
+				this.errormsg = `Error: ${e.response ? e.response.data : e.toString()}`;
+			}
+
+			this.loading = false;
+		},
+		async createChat(username) {
+			console.log("Creating chat with", username);
+			this.query = username;
+			this.loading = true;
+			this.errormsg = null;
+			try {
+				const token = localStorage.getItem("token");
+				if (!token) {
+					this.errormsg = "No token found. Please log in.";
+					this.loading = false;
+					return;
+				}
+				
+				await this.$axios.post("/newChat", {
+					chatter: username,
+					id: Number(localStorage.getItem("token"))
+				}, {
+					headers: { Authorization: `Bearer ${token}` }
+				});
+				this.$router.replace(`/`);
+				this.$emit("new-chat");
+			} catch (e) {
+				if (e.response && e.response.status === 401) {
+					localStorage.removeItem("token");
+					this.errormsg = "Invalid token. Please log in again.";
+				} else {
+					this.errormsg = `Error: ${e.response ? e.response.data : e.toString()}`;
+				}
+			}
+		},
+		filteredUsers() {
+			if (!this.query) return [];
+			return this.users.filter(user =>
+				user.toLowerCase().includes(this.query.toLowerCase())
+			);
+		},
+		showSearchResults() {
+			this.showResults = true;
+		},
+		hideResults() {
+			setTimeout(() => {  // Delay to ensure the click on the result item is registered
+				this.showResults = false;
+			}, 100);
+		},
 	},
+	
 	mounted() {
 		this.refresh()
+		if (localStorage.getItem('token')) {
+			this.showDiv = true;
+			this.fetchUsers();
+		}
 	}
 }
 </script>
@@ -80,6 +163,21 @@ export default {
 		<button class="navbar-toggler position-absolute d-md-none collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#sidebarMenu" aria-controls="sidebarMenu" aria-expanded="false" aria-label="Toggle navigation">
 			<span class="navbar-toggler-icon"></span>
 		</button>
+		<div class="search-container" v-if="showDiv">
+			<input 
+				v-model="query" 
+				@focus="showResults = true"
+				class="form-control form-control-dark w-80"
+				type="text"
+				placeholder="Search for users..."
+				aria-label="Search"
+			/>
+			<div v-if="showResults && filteredUsers().length" class="dropdown">
+				<div v-for="user in filteredUsers()" :key="user" @click="createChat(user)">
+					{{ user }}
+				</div>
+			</div>
+		</div>
 	</header>
 
 	<div class="container-fluid">
@@ -122,7 +220,7 @@ export default {
 			<main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
 				<div id="content" >
 					<ErrorMsg v-if="errormsg" :msg="errormsg"></ErrorMsg>
-				<RouterView @login-success="refresh" @logout-success="refresh" @new-chat="refresh" @new-group="refresh" @conversation-loaded="refresh" @group-left="refresh" @group-added="refresh" @username-changed="refresh" @set-propic="refresh" @group-pic-updated="refresh" @group-name-updated="refresh" @message-forwarded="refresh" @message-deleted="refresh" @auth-error="authError"></RouterView>
+				<RouterView @login-success="handleLoginSuccess" @logout-success="handleLogoutSuccess" @new-chat="refresh" @new-group="refresh" @conversation-loaded="refresh" @group-left="refresh" @group-added="refresh" @username-changed="refresh" @set-propic="refresh" @group-pic-updated="refresh" @group-name-updated="refresh" @message-forwarded="refresh" @message-deleted="refresh" @auth-error="authError"></RouterView>
 			</div>
 			</main>
 		</div>
