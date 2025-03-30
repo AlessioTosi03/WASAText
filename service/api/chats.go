@@ -531,3 +531,24 @@ func (rt *_router) getMyConversations(w http.ResponseWriter, r *http.Request, _ 
 		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
 	}
 }
+
+func (rt *_router) getGroupParticipants(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	// Extract the group ID from the URL parameters
+	conversationIDStr := ps.ByName("ConversationID")
+	conversationID, _ := strconv.Atoi(conversationIDStr)
+
+	// Fetch the list of participants for the group
+	participants, err := rt.db.GetGroupParticipants(conversationID)
+	if err != nil {
+		rt.baseLogger.Errorf("Failed to retrieve participants for group %d: %v", conversationID, err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	if err := json.NewEncoder(w).Encode(participants); err != nil {
+		rt.baseLogger.Errorf("Failed to encode response: %v", err)
+		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
+	}
+}

@@ -168,3 +168,28 @@ func (db *appdbimpl) CreateChat(userID int, otherUserID int) (int, error) {
 
 	return int(chatID), nil
 }
+
+func (db *appdbimpl) GetGroupParticipants(groupID int) ([]string, error) {
+	var users []string
+	rows, err := db.c.Query("SELECT user_id FROM participant_relation WHERE conversation_id = ?", groupID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var user string
+		var userID int
+		err := rows.Scan(&userID)
+		if err != nil {
+			return nil, err
+		}
+		err = db.c.QueryRow("SELECT name FROM users WHERE id = ?", userID).Scan(&user)
+		if err != nil {
+			return nil, err
+		}
+		users = append(users, user)
+	}
+
+	return users, nil
+}

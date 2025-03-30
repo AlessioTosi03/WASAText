@@ -45,7 +45,6 @@ export default {
 			this.username = localStorage.getItem("username");
 			this.photo = localStorage.getItem("propic");
 			this.user_url = "/users/" + localStorage.getItem("token");
-			console.log(this.user_url);
 			try {
 				let response = await this.$axios.get("/stream", {
 					headers: { Authorization: `Bearer ${token}` }
@@ -82,7 +81,6 @@ export default {
 
 			try {
 				let response = await this.$axios.get("/users");  // API Go
-				console.log("Users received from API:", response.data); // <-- DEBUG
 				const currentUser = localStorage.getItem("username");
 
 				// Filtra l'utente corrente dalla lista

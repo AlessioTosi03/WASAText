@@ -24,6 +24,7 @@ export default {
             activePicker: null,  // Store the current picker ID (1, 2, etc.)
             selectedEmoji: '',
             myReaction: '',
+            participants: []
 		}
 	},
 	methods: {
@@ -61,7 +62,7 @@ export default {
                 response = await this.$axios.get("/stream", {
 					headers: { Authorization: `Bearer ${token}` }
 				});
-				
+				await this.getGroupParticipants(convId);
 				// If the request is successful, update conversations
 				this.conversations = response.data;
 				this.isLoggedIn = true;  // User is logged in
@@ -80,7 +81,6 @@ export default {
                     for (let message of this.messages) {
                         if (!message.reaction) {
                             message.reaction = await this.getMyReaction(message.id);
-                            console.log(message)
                         }
                     }
                 }
@@ -204,6 +204,7 @@ export default {
                 alert("User added to the group successfully!");
                 this.$router.push(`/chat/${convId}/messages`);
                 this.$emit("group-added");
+                await this.refresh();
             } catch (e) {
                 if (e.response && e.response.status === 401) {
                     localStorage.removeItem("token");
@@ -381,7 +382,6 @@ export default {
         async commentMessage(emoji,message_id) {
             this.selectedEmoji = `${emoji}`;
             this.activePicker = null; // Close the picker after selecting an emoji
-            console.log(this.selectedEmoji)
             this.loading = true;
             this.errormsg = null;
             const token = localStorage.getItem("token");
@@ -486,6 +486,44 @@ export default {
             finally {
                 this.loading = false;
             }
+        },
+        async getGroupParticipants(conversation_id){
+            console.log("Getting group participants for conversation", conversation_id);
+            this.loading = true;
+            this.errormsg = null;
+            const token = localStorage.getItem("token");
+            if (!token) {
+                this.errormsg = "No token found. Please log in.";
+                this.loading = false;
+                return;
+            }
+            if (!conversation_id) {
+                this.loading = false;
+                return; // Skip fetching conversation data
+            }
+            const convId = this.$route.params.conversation_id;
+
+            try {
+                let response = await this.$axios.get(`/chat/${convId}/participants`, {
+                    headers: { Authorization: `Bearer ${token}` }
+                });
+                this.participants = response.data;
+                console.log(`participants: ${this.participants}`); // <-- DEBUG
+                return this.participants;
+            } catch (e) {
+                if (e.response && e.response.status === 401) {
+                    localStorage.removeItem("token");
+                    this.errormsg = "Invalid token. Please log in again.";
+                    this.$emit("auth-error");
+                    this.$router.push("/");
+                } else {
+                    this.errormsg = `Error: ${e.response ? e.response.data : e.toString()}`;
+                }
+            }
+
+            finally {
+                this.loading = false;
+            }
         }
 	},
     watch: {
@@ -493,11 +531,12 @@ export default {
             if (newId !== oldId) {
                 this.refresh(); // Refresh when the conversation ID changes
             }
-        },
+        },  
     },
     mounted() {
         this.refresh()
         this.username = localStorage.getItem("username");
+        this.getGroupParticipants(this.$route.params.conversation_id);
         setInterval(this.refresh(), 6000);
     }
 
@@ -522,6 +561,7 @@ export default {
 		<div v-if="conversation.type === 'group'" style="z-index:1000;" class="conv d-flex justify-content-start flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
             <img :src = "getUrl(group.photo)" width="70" height="70" class="conversation" id="conversation-photo">
             <h2 class="conversation" id="conversation-title">{{ group.name }}</h2>
+            {{ participants }}
             <div id="popup-container">
                  <!-- Button to show the popup -->
                 <button @click="showPopup = true">Open Options</button>
