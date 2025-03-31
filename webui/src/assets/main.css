@@ -103,7 +103,7 @@
 	border: 1px solid #ccc;
 	max-height: 200px;
 	overflow-y: auto;
-	z-index: 1000;
+	z-index: 2000;
 }
 
 .dropdown div {

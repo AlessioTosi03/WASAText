@@ -14,6 +14,11 @@ import (
 	"github.com/julienschmidt/httprouter"
 )
 
+type Reaction struct {
+	Username string `json:"username"`
+	Emoji    string `json:"emoji"`	
+}
+
 func (rt *_router) sendMessage(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	err := r.ParseMultipartForm(10 << 20) // 10 MB limit
 	if err != nil {
@@ -402,4 +407,70 @@ func (rt *_router) getMyReaction(w http.ResponseWriter, r *http.Request, ps http
 	if err := json.NewEncoder(w).Encode(reaction); err != nil {
 		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
 	}
+}
+
+func (rt *_router) getAllReactions(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	messageIDStr := ps.ByName("MessageID")
+	messageID, _ := strconv.Atoi(messageIDStr)
+
+	authHeader := r.Header.Get("Authorization")
+	if authHeader == "" {
+		http.Error(w, "Missing Authorization header", http.StatusUnauthorized)
+		return
+	}
+
+	// Check if it's in the format "Bearer <user_id>"
+	parts := strings.Split(authHeader, " ")
+	if len(parts) != 2 || parts[0] != "Bearer" {
+		http.Error(w, "Invalid Authorization format", http.StatusUnauthorized)
+		return
+	}
+
+	authID, err := strconv.Atoi(parts[1])
+	if err != nil {
+		http.Error(w, "Invalid Authorization token", http.StatusUnauthorized)
+		return
+	}
+
+	conversationIDStr := ps.ByName("ConversationID")
+	conversationID, _ := strconv.Atoi(conversationIDStr)
+
+	partecipation, err := rt.db.CheckUserParticipation(authID, conversationID)
+	if err != nil {
+		rt.baseLogger.Errorf("Failed to check user participation: %v", err)
+		http.Error(w, "Failed to check user participation", http.StatusInternalServerError)
+		return
+	}
+	if !partecipation {
+		rt.baseLogger.Errorf("User %d is not part of conversation %d", authID, conversationID)
+		http.Error(w, "User is not part of conversation", http.StatusUnauthorized)
+		return
+	}
+	var output []Reaction
+	var reactions []database.Reaction
+	reactions, err = rt.db.GetAllReactions(messageID)
+	if err != nil {
+		rt.baseLogger.Errorf("Failed to get all reactions for messageID %d: %v", messageID, err)
+		http.Error(w, "Failed to get all reactions", http.StatusInternalServerError)
+		return
+	}
+	for _, reaction := range reactions {
+		username, err := rt.db.GetUsername(reaction.UserID)
+		if err != nil {
+			rt.baseLogger.Errorf("Failed to get username for userID %d: %v", reaction.UserID, err)
+			http.Error(w, "Failed to get username", http.StatusInternalServerError)
+			return
+		}
+		output = append(output, Reaction{
+			Username: username,
+			Emoji:    reaction.Emoji,
+		})
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	if err := json.NewEncoder(w).Encode(output); err != nil {
+		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
+		return
+	}
+	// Send the reaction as a JSON response
 }

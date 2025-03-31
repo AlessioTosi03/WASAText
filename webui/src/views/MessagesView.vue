@@ -19,12 +19,14 @@ export default {
             file: null,
             showPopup: false, // Controls visibility of the popup
             showPopup2: false, // Controls visibility of the popup
+            showPopup3: false, // Controls visibility of the popup
             conversations: [],
             isLoggedIn: false,
             activePicker: null,  // Store the current picker ID (1, 2, etc.)
             selectedEmoji: '',
             myReaction: '',
-            participants: []
+            participants: [],
+            allReactions: [],
 		}
 	},
 	methods: {
@@ -74,6 +76,7 @@ export default {
                 }
                 this.conversation = convData.conversation;
                 this.messages = convData.messages;
+                console.log(this.messages);
                 if (this.messages === null) {
                     this.messages = [];
                 }
@@ -413,7 +416,6 @@ export default {
             }
         },
         async getMyReaction(message_id){
-            console.log("Getting my reaction to message", message_id);
             this.loading = true;
             this.errormsg = null;
             const token = localStorage.getItem("token");
@@ -510,6 +512,47 @@ export default {
                 this.participants = response.data;
                 console.log(`participants: ${this.participants}`); // <-- DEBUG
                 return this.participants;
+            } catch (e) {
+                if (e.response && e.response.status === 401) {
+                    localStorage.removeItem("token");
+                    this.errormsg = "Invalid token. Please log in again.";
+                    this.$emit("auth-error");
+                    this.$router.push("/");
+                } else {
+                    this.errormsg = `Error: ${e.response ? e.response.data : e.toString()}`;
+                }
+            }
+
+            finally {
+                this.loading = false;
+            }
+        },
+        async getAllReactions(message_id){
+            this.loading = true;
+            this.errormsg = null;
+            const token = localStorage.getItem("token");
+            if (!token) {
+                this.errormsg = "No token found. Please log in.";
+                this.loading = false;
+                return;
+            }
+            if (!message_id) {
+                this.loading = false;
+                return; // Skip fetching conversation data
+            }
+            const convId = this.$route.params.conversation_id;
+
+            try {
+                let response = await this.$axios.get(`/chat/${convId}/messages/${message_id}/allreactions`, {
+                    headers: { Authorization: `Bearer ${token}` }
+                });
+                const currentUser = localStorage.getItem("username");
+                this.allReactions = response.data;
+                if (currentUser && Array.isArray(this.allReactions)) {
+                    this.allReactions = this.allReactions.filter(reaction => reaction.username !== currentUser);
+                }
+                await this.refresh();
+                return this.allReactions;
             } catch (e) {
                 if (e.response && e.response.status === 401) {
                     localStorage.removeItem("token");
@@ -622,16 +665,36 @@ export default {
                     <button v-if="m.username === username" @click="deleteMessage(m.id)" class="btn btn-sm"  id="delete-message">
                         <svg class="feather" id="delete-svg"><use href="/feather-sprite-v4.29.0.svg#trash-2"/></svg>
                     </button>
-                    {{ m.reaction }}
-                    <button v-if="!m.reaction" @click="togglePicker(index)">😊</button>
-                    <emoji-picker :key="index"
-                    v-if="activePicker === index" 
-                    @emoji-click="commentMessage($event.detail.unicode, m.id)" 
-                    class="emoji-picker"
-                    ></emoji-picker>
-                    <button v-if="m.reaction" @click="uncommentMessage(m.id)" class="btn btn-sm"  id="delete-reaction">
-                        Delete reaction
+                    <button @click="showPopup3 = true && getAllReactions(m.id)" class="btn btn-sm" id="forward-message">
+                        <svg class="feather" id="forward-svg"><use href="/feather-sprite-v4.29.0.svg#smile"/></svg>
                     </button>
+                    <div v-if="showPopup3" class="popup-overlay" @click.self="showPopup3 = false">
+                        <div class="popup-content" id="convs-popup">
+                            <div id="my-reaction">
+                                My reaction:
+                                {{ m.reaction }}
+                                <button v-if="!m.reaction" @click="togglePicker(index)">😊</button>
+                                <emoji-picker :key="index"
+                                v-if="activePicker === index" 
+                                @emoji-click="commentMessage($event.detail.unicode, m.id)" 
+                                class="emoji-picker"
+                                ></emoji-picker>
+                                <button v-if="m.reaction" @click="uncommentMessage(m.id)" class="btn btn-sm"  id="delete-reaction">
+                                    Delete reaction
+                                </button>
+                            </div>
+
+                            <ul class="reactions-list">
+                                <li v-for="(reaction, index) in allReactions" :key="index" class="reaction-item">
+                                    {{ reaction.username }} 's reaction: {{ reaction.emoji }}<br>
+                                </li>
+                                <p v-if ="!allReactions" id="no-reaction-text">
+                                    No reactions yet
+                                </p>
+                            </ul>
+                        </div>
+                    </div>
+                    
                     <p v-if="m.forwarded==1" id="forwarded-text" style="margin-left: 30%">
                         Forwarded
                     </p>

@@ -72,6 +72,7 @@ type AppDatabase interface {
 	GetAllUsers() ([]string, error)
 	GetGroupParticipants(groupID int) ([]string, error)
 	DoLogin(userID int) (User, error)
+	GetAllReactions(messageID int) ([]Reaction, error)
 	// others
 	Ping() error
 }

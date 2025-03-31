@@ -12,6 +12,10 @@ type Message struct {
 	Pic       string `json:"pic"`
 	Forwarded bool   `json:"forwarded"`
 }
+type Reaction struct {
+	UserID int    `json:"user_id"`
+	Emoji  string `json:"emoji"`
+}
 
 func (db *appdbimpl) SendMessage(userID int, conversationID int, message string, picture string) error {
 	_, err := db.c.Exec("INSERT INTO messages (user_id, conversation_id, message_text, image, forwarded) VALUES (?, ?, ?, ?, 0)", userID, conversationID, message, picture)
@@ -103,4 +107,24 @@ func (db *appdbimpl) GetMyReaction(userID int, messageID int) (string, error) {
 		return "", err // Handle no user found or other errors
 	}
 	return reaction, nil
+}
+
+func (db *appdbimpl) GetAllReactions(messageID int) ([]Reaction, error) {
+	var reactions []Reaction
+	rows, err := db.c.Query("SELECT emoji,user_id FROM reaction_relation WHERE message_id = ?", messageID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var reaction Reaction
+		err := rows.Scan(&reaction.Emoji, &reaction.UserID)
+		if err != nil {
+			return nil, err
+		}
+		reactions = append(reactions, reaction)
+	}
+
+	return reactions, nil
 }

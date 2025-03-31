@@ -112,6 +112,7 @@ export default {
 				});
 				this.$router.replace(`/`);
 				this.$emit("new-chat");
+				await this.refresh()
 			} catch (e) {
 				if (e.response && e.response.status === 401) {
 					localStorage.removeItem("token");
