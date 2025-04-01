@@ -16,6 +16,7 @@ export default {
             message: 0,
             url: "",
             text: "",
+            messageText: "",
             file: null,
             showPopup: false, // Controls visibility of the popup
             showPopup2: false, // Controls visibility of the popup
@@ -106,7 +107,7 @@ export default {
             this.loading = true;
             this.errormsg = null;
             const formData = new FormData();
-            formData.append("text", this.text); // Message text
+            formData.append("text", this.messageText); // Message text
             if (this.file) {
                 formData.append("photo", this.file); // Attach the file
             }
@@ -118,7 +119,7 @@ export default {
                     this.loading = false;
                     return;
                 }
-                if (!this.text && !this.file) {
+                if (!this.messageText && !this.file) {
                     this.errormsg = "Message or image required!";
                     this.loading = false;
                     return;
@@ -129,7 +130,7 @@ export default {
                                 "Content-Type": "multipart/form-data"
                      }
                 });
-                this.text = "";
+                this.messageText = "";
                 this.file = null;
                 this.$refs.fileInput.value = "";
                 this.refresh();
@@ -587,7 +588,7 @@ export default {
 </script>
 
 <template>
-    <div class="fixed-top d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3">
+    <div class="my-fixed d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3">
         <h1 class="h2"></h1>
         <div class="btn-toolbar mb-2 mb-md-0">
             <div class="btn-group me-2">
@@ -601,7 +602,7 @@ export default {
         </div>
     </div>
 	<div class="conv-container">
-		<div v-if="conversation.type === 'group'" style="z-index:1000;" class="conv d-flex justify-content-start flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+		<div v-if="conversation.type === 'group'" style="z-index:600; background-color: wheat;" class="conv d-flex justify-content-start flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
             <img :src = "getUrl(group.photo)" width="70" height="70" class="conversation" id="conversation-photo">
             <h2 class="conversation" id="conversation-title">{{ group.name }}</h2>
             {{ participants }}
@@ -708,7 +709,7 @@ export default {
         <ErrorMsg v-if="errormsg" :msg="errormsg" ></ErrorMsg>
 
         <form @submit.prevent="sendMessage" id="message-form" >
-            <input type="text" v-model="text" id="message-input" placeholder="Type your message here">
+            <input type="text" v-model="messageText" id="message-input" placeholder="Type your message here">
             <input type="file" ref="fileInput" @change="onFileChange" id="message-pic" accept="image/*">
             <button type="submit" class="btn btn-primary" :disabled="loading">Send</button>
         </form>
