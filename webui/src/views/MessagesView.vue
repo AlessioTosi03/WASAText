@@ -581,7 +581,7 @@ export default {
         this.refresh()
         this.username = localStorage.getItem("username");
         this.getGroupParticipants(this.$route.params.conversation_id);
-        setInterval(this.refresh(), 6000);
+        setInterval(this.refresh(), 1000);
     }
 
 }

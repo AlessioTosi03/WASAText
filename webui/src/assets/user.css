@@ -6,3 +6,9 @@
     gap: 210px;
     width: 100%;
 }
+
+.fixed-top {
+    width: 300px; /* O qualsiasi altra larghezza desiderata */
+    margin-left: auto; /* Lo spinge completamente a destra */
+    right: 0; /* Assicura che sia allineato a destra */
+}

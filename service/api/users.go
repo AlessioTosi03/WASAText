@@ -62,9 +62,6 @@ func (rt *_router) doLogin(w http.ResponseWriter, r *http.Request, ps httprouter
 		http.Error(w, "Failed to login user", http.StatusInternalServerError)
 		return
 	}
-	if user.ProfilePic == "default" {
-		user.ProfilePic = "/photos/default.png"
-	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	if err := json.NewEncoder(w).Encode(user); err != nil {

@@ -16,7 +16,8 @@ export default {
 			users: [],
 			query: "",
 			showDiv: false,
-			showResults: false
+			showResults: false,
+			propic : localStorage.getItem('propic')
 		}
 	},
 	methods: {
@@ -139,6 +140,7 @@ export default {
 	},
 	
 	mounted() {
+	this.propic = localStorage.getItem('propic')
 		this.refresh()
 		if (localStorage.getItem('token')) {
 			this.showDiv = true;
@@ -151,13 +153,16 @@ export default {
 <template>
 
 	<header class="navbar navbar-dark sticky-top bg-dark flex-md-nowrap p-0 shadow">
-		<RouterLink class="navbar-brand col-md-3 col-lg-2 me-0 px-3 fs-6" v-if="isLoggedIn" :to=user_url>
+		<RouterLink class="navbar-brand col-md-3 col-lg-2 me-0 px-3 fs-6" v-if="isLoggedIn && (user_url && this.propic !== 'default')" :to="user_url">
 			<img :src="getUrl(photo)" width="40" height="40" class="profile-pic" id="profile-pic">
 			<p class="profile-name">{{ username }}</p>
 		</RouterLink>
 		<div class="navbar-brand col-md-3 col-lg-2 me-0 px-3 fs-6" v-else>
 			<img src="/photos/default.png" width="40" height="40" class="profile-pic" id="profile-pic">
-			<p class="profile-name">Guest</p>
+			<RouterLink v-if="isLoggedIn"  :to="user_url">
+				<p class="profile-name">{{ username }}</p>
+			</RouterLink>
+			<p class="profile-name" v-else>Guest</p>
 		</div>
 		<button class="navbar-toggler position-absolute d-md-none collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#sidebarMenu" aria-controls="sidebarMenu" aria-expanded="false" aria-label="Toggle navigation">
 			<span class="navbar-toggler-icon"></span>
