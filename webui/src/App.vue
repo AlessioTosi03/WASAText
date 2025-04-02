@@ -153,7 +153,7 @@ export default {
 <template>
 
 	<header class="navbar navbar-dark sticky-top bg-dark flex-md-nowrap p-0 shadow">
-		<RouterLink class="navbar-brand col-md-3 col-lg-2 me-0 px-3 fs-6" v-if="isLoggedIn && (user_url && this.propic !== 'default')" :to="user_url">
+		<RouterLink class="navbar-brand col-md-3 col-lg-2 me-0 px-3 fs-6" v-if="isLoggedIn && (user_url && propic !== 'default')" :to="user_url">
 			<img :src="getUrl(photo)" width="40" height="40" class="profile-pic" id="profile-pic">
 			<p class="profile-name">{{ username }}</p>
 		</RouterLink>

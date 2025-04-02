@@ -400,19 +400,30 @@ func (rt *_router) getConversation(w http.ResponseWriter, r *http.Request, ps ht
 		return
 	}
 
-	// Fetch the messages for the conversation
-	allMessages, err := rt.db.GetMessages(conversationID)
+	err = rt.db.ReadMessages(authID, conversationID)
 	if err != nil {
-		rt.baseLogger.Errorf("Error retrieving messages for conversation ID %d: %v", conversationID, err)
-		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		rt.baseLogger.Errorf("Failed to read messages for userID %d: %v", authID, err)
+		http.Error(w, "Failed to read messages", http.StatusInternalServerError)
 		return
 	}
 
+	// Fetch the participants for the conversation
+	var participants []string
+
 	// Depending on the conversation type, fetch additional data (chat or group)
 	if conversation.Type == "chat" {
-		otherUserID, err := rt.db.GetOtherParticipant(conversationID, authID)
+		participant, err := rt.db.GetOtherParticipant(conversationID, authID)
 		if err != nil {
 			rt.baseLogger.Errorf("Error retrieving other participant for conversation ID %d: %v", conversationID, err)
+			http.Error(w, "Internal server error", http.StatusInternalServerError)
+			return
+		}
+		participants = append(participants, participant.Username)
+
+		// Fetch the messages for the conversation
+		allMessages, err := rt.db.GetMessages(conversationID, participants)
+		if err != nil {
+			rt.baseLogger.Errorf("Error retrieving messages for conversation ID %d: %v", conversationID, err)
 			http.Error(w, "Internal server error", http.StatusInternalServerError)
 			return
 		}
@@ -421,7 +432,7 @@ func (rt *_router) getConversation(w http.ResponseWriter, r *http.Request, ps ht
 		w.WriteHeader(http.StatusOK)
 		response := map[string]interface{}{
 			"conversation": conversation,
-			"chatter":      otherUserID,
+			"chatter":      participant,
 			"messages":     allMessages,
 		}
 		if err := json.NewEncoder(w).Encode(response); err != nil {
@@ -431,6 +442,20 @@ func (rt *_router) getConversation(w http.ResponseWriter, r *http.Request, ps ht
 		}
 
 	} else if conversation.Type == "group" {
+		participants, err = rt.db.GetGroupParticipants(conversationID)
+		if err != nil {
+			rt.baseLogger.Errorf("Error retrieving group participants for conversation ID %d: %v", conversationID, err)
+			http.Error(w, "Internal server error", http.StatusInternalServerError)
+			return
+		}
+		// Fetch the messages for the conversation
+		allMessages, err := rt.db.GetMessages(conversationID, participants)
+		if err != nil {
+			rt.baseLogger.Errorf("Error retrieving messages for conversation ID %d: %v", conversationID, err)
+			http.Error(w, "Internal server error", http.StatusInternalServerError)
+			return
+		}
+
 		group, err := rt.db.GetGroupFromConversation(conversationID)
 		if err != nil {
 			rt.baseLogger.Errorf("Error retrieving group for conversation ID %d: %v", conversationID, err)
@@ -474,6 +499,12 @@ func (rt *_router) getMyConversations(w http.ResponseWriter, r *http.Request, _ 
 		return
 	}
 
+	err = rt.db.ReceiveMessages(authID)
+	if err != nil {
+		rt.baseLogger.Errorf("Failed to receive messages for userID %d: %v", authID, err)
+		http.Error(w, "Failed to receive messages", http.StatusInternalServerError)
+		return
+	}
 	// Fetch the list of conversations the user is part of
 	conversations, err := rt.db.GetConversationsByUser(authID)
 	if err != nil {

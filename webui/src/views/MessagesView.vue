@@ -695,7 +695,8 @@ export default {
                             </ul>
                         </div>
                     </div>
-                    
+                    <svg v-if="m.received_status" class="feather" id="forward-svg"><use href="/feather-sprite-v4.29.0.svg#check"/></svg>
+                    <svg v-if="m.read_status" class="feather" id="forward-svg"><use href="/feather-sprite-v4.29.0.svg#check"/></svg>
                     <p v-if="m.forwarded==1" id="forwarded-text" style="margin-left: 30%">
                         Forwarded
                     </p>

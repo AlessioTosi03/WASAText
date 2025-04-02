@@ -49,7 +49,7 @@ type AppDatabase interface {
 	GetGroupFromConversation(conversationID int) (Group, error)
 	GetChatFromConversation(conversationID int) (Chat, error)
 	GetOtherParticipant(conversationID int, userID int) (User, error)
-	GetMessages(conversationID int) ([]Message, error)
+	GetMessages(conversationID int, participants []string) ([]Message, error)
 	CreateGroup(userID int, groupName string, photoURL string) (int, error)
 	CreateChat(userID int, otherUserID int) (int, error)
 	GetUsername(userID int) (string, error)
@@ -73,6 +73,10 @@ type AppDatabase interface {
 	GetGroupParticipants(groupID int) ([]string, error)
 	DoLogin(userID int) (User, error)
 	GetAllReactions(messageID int) ([]Reaction, error)
+	ReceiveMessages(userID int) error
+	ReadMessages(userID int, conversationID int) error
+	GetMessageReceivedStatus(messageID int, userID int) (int, error)
+	GetMessageReadStatus(messageID int, userID int) (int, error)
 	// others
 	Ping() error
 }
@@ -141,7 +145,7 @@ func New(db *sql.DB) (AppDatabase, error) {
 			return nil, fmt.Errorf("error creating database structure: %w", err)
 		}
 	}
-	err = db.QueryRow(`SELECT name FROM sqlite_master WHERE type='table' AND name='participation_relation';`).Scan(&tableName)
+	err = db.QueryRow(`SELECT name FROM sqlite_master WHERE type='table' AND name='participant_relation';`).Scan(&tableName)
 	if errors.Is(err, sql.ErrNoRows) {
 		sqlStmt := `CREATE TABLE IF NOT EXISTS participant_relation (
 						conversation_id INTEGER NOT NULL,
@@ -177,8 +181,8 @@ func New(db *sql.DB) (AppDatabase, error) {
 	err = db.QueryRow(`SELECT name FROM sqlite_master WHERE type='table' AND name='message_read_status';`).Scan(&tableName)
 	if errors.Is(err, sql.ErrNoRows) {
 		sqlStmt := `CREATE TABLE IF NOT EXISTS message_read_status (
-						message_id INTEGER NOT NULL UNIQUE,
-						user_id INTEGER NOT NULL UNIQUE,
+						message_id INTEGER NOT NULL,
+						user_id INTEGER NOT NULL,
 						read_timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
 						PRIMARY KEY (message_id, user_id),
 						FOREIGN KEY (user_id) REFERENCES users(id),
@@ -192,8 +196,8 @@ func New(db *sql.DB) (AppDatabase, error) {
 	err = db.QueryRow(`SELECT name FROM sqlite_master WHERE type='table' AND name='message_received_status';`).Scan(&tableName)
 	if errors.Is(err, sql.ErrNoRows) {
 		sqlStmt := `CREATE TABLE IF NOT EXISTS message_received_status (
-					message_id INTEGER NOT NULL UNIQUE,
-					user_id INTEGER NOT NULL UNIQUE,
+					message_id INTEGER NOT NULL,
+					user_id INTEGER NOT NULL,
 					read_timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
 					PRIMARY KEY (message_id, user_id),
 					FOREIGN KEY (user_id) REFERENCES users(id),

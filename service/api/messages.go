@@ -16,7 +16,7 @@ import (
 
 type Reaction struct {
 	Username string `json:"username"`
-	Emoji    string `json:"emoji"`	
+	Emoji    string `json:"emoji"`
 }
 
 func (rt *_router) sendMessage(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
