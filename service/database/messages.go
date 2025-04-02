@@ -2,7 +2,6 @@ package database
 
 import (
 	"database/sql"
-	"log"
 	"time"
 )
 
@@ -138,7 +137,7 @@ func (db *appdbimpl) ReceiveMessages(userID int) error {
 	// Aggiornare lo stato di ricezione per ogni messaggio
 	for _, messageID := range messageIDs {
 		var exists int
-		log.Println(messageID)
+		//log.Println(messageID)
 		err := db.c.QueryRow("SELECT COUNT(*) FROM message_received_status WHERE message_id = ? AND user_id = ?", messageID, userID).Scan(&exists)
 		if err != nil {
 			return err

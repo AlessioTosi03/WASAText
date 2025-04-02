@@ -26,7 +26,7 @@ export default {
 				await this.$axios.get("/stream", { 
 					headers: { Authorization: `Bearer ${token}` }
 				});
-
+				this.$emit("login-success");
 				this.isLoggedIn = true;
 			} catch (e) {
 				if (e.response && e.response.status === 401) {
@@ -82,6 +82,7 @@ export default {
 		this.id = localStorage.getItem("token");
 		this.username = localStorage.getItem("username");
 		this.propic = localStorage.getItem("propic");
+		setInterval(this.refresh, 2000);
 	}
 }
 </script>

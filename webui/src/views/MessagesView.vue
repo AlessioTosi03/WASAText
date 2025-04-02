@@ -69,7 +69,6 @@ export default {
 				// If the request is successful, update conversations
 				this.conversations = response.data;
 				this.isLoggedIn = true;  // User is logged in
-
                 if (convData.conversation.type === "group") {
                     this.group = convData.group;
                 } else {
@@ -77,7 +76,6 @@ export default {
                 }
                 this.conversation = convData.conversation;
                 this.messages = convData.messages;
-                console.log(this.messages);
                 if (this.messages === null) {
                     this.messages = [];
                 }
@@ -581,7 +579,7 @@ export default {
         this.refresh()
         this.username = localStorage.getItem("username");
         this.getGroupParticipants(this.$route.params.conversation_id);
-        setInterval(this.refresh(), 1000);
+        setInterval(this.refresh, 2000);
     }
 
 }
