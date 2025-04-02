@@ -36,6 +36,9 @@ func (db *appdbimpl) GetConversationsByUser(userID int) ([]Conversation, error) 
 		}
 		conversations = append(conversations, conversation)
 	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
 
 	return conversations, nil
 }
@@ -189,6 +192,9 @@ func (db *appdbimpl) GetGroupParticipants(groupID int) ([]string, error) {
 			return nil, err
 		}
 		users = append(users, user)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
 	}
 
 	return users, nil

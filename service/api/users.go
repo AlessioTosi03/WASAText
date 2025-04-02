@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/AlessioTosi03/WASAText/service/database"
+	"errors"
 
 	"github.com/julienschmidt/httprouter"
 )
@@ -43,7 +44,7 @@ func (rt *_router) doLogin(w http.ResponseWriter, r *http.Request, ps httprouter
 
 	// Check if the user exists
 	userID, err := rt.db.GetUserIDByUsername(req.Username)
-	if err == sql.ErrNoRows {
+	if errors.Is(err, sql.ErrNoRows) {
 		// User doesn't exist, create a new one
 		userID, err = rt.db.CreateUsername(req.Username)
 		if err != nil {
@@ -341,7 +342,10 @@ func (rt *_router) getAllUsers(w http.ResponseWriter, r *http.Request, ps httpro
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(usernames)
+	if err := json.NewEncoder(w).Encode(usernames); err != nil {
+		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
+		return
+	}
 }
 
 func (rt *_router) getUserIDbyUsername(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
@@ -353,5 +357,8 @@ func (rt *_router) getUserIDbyUsername(w http.ResponseWriter, r *http.Request, p
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(userID)
+	if err := json.NewEncoder(w).Encode(userID); err != nil {
+		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
+		return
+	}
 }

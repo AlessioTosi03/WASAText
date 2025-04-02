@@ -3,6 +3,7 @@ package database
 import (
 	"database/sql"
 	"fmt"
+	"errors"
 )
 
 func (db *appdbimpl) GetUserIDByUsername(username string) (int, error) {
@@ -27,7 +28,7 @@ func (db *appdbimpl) CreateUsername(username string) (int, error) {
 func (db *appdbimpl) SetMyUserName(userID int, name string) error {
 	err := db.c.QueryRow("SELECT name FROM users WHERE name = ?", name).Scan(&name)
 
-	if err == nil {
+	if errors.Is(err, nil) {
 		// Se err è nil, significa che il nome esiste già
 		return fmt.Errorf("username '%s' is already taken", name)
 	}
@@ -36,7 +37,7 @@ func (db *appdbimpl) SetMyUserName(userID int, name string) error {
 		// Se c'è un errore diverso da sql.ErrNoRows, ritorniamolo
 		return err
 	}
-	if err == sql.ErrNoRows {
+	if errors.Is(err, sql.ErrNoRows) {
 		_, err := db.c.Exec("UPDATE users SET name = ? WHERE id = ?", name, userID)
 		return err
 	}

@@ -3,6 +3,7 @@ package database
 import (
 	"database/sql"
 	"time"
+	"errors"
 )
 
 type Message struct {
@@ -74,7 +75,7 @@ func (db *appdbimpl) GetMessageUser(messageID int) (int, error) {
 func (db *appdbimpl) GetMyReaction(userID int, messageID int) (string, error) {
 	var reaction string
 	err := db.c.QueryRow("SELECT emoji FROM reaction_relation WHERE user_id = ? AND message_id = ?", userID, messageID).Scan(&reaction)
-	if err == sql.ErrNoRows {
+	if errors.Is(err, sql.ErrNoRows) {
 		// No reaction found for the message
 		return "", nil // Returning nil for no reaction found
 	}
@@ -100,12 +101,15 @@ func (db *appdbimpl) GetAllReactions(messageID int) ([]Reaction, error) {
 		}
 		reactions = append(reactions, reaction)
 	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
 
 	return reactions, nil
 }
 
 func (db *appdbimpl) ReceiveMessages(userID int) error {
-	//log.Println(userID)
+	// log.Println(userID)
 	var messageIDs []int
 	rows, err := db.c.Query("SELECT conversation_id FROM participant_relation WHERE user_id = ?", userID)
 	if err != nil {
@@ -131,13 +135,19 @@ func (db *appdbimpl) ReceiveMessages(userID int) error {
 			}
 			messageIDs = append(messageIDs, id)
 		}
-		//log.Println(messageIDs)
+		if err := mess_rows.Err(); err != nil {
+			return err
+		}
+		// log.Println(messageIDs)
+	}
+	if err := rows.Err(); err != nil {
+		return err
 	}
 
 	// Aggiornare lo stato di ricezione per ogni messaggio
 	for _, messageID := range messageIDs {
 		var exists int
-		//log.Println(messageID)
+		// log.Println(messageID)
 		err := db.c.QueryRow("SELECT COUNT(*) FROM message_received_status WHERE message_id = ? AND user_id = ?", messageID, userID).Scan(&exists)
 		if err != nil {
 			return err
@@ -169,11 +179,14 @@ func (db *appdbimpl) ReadMessages(userID int, conversationID int) error {
 		}
 		messageIDs = append(messageIDs, id)
 	}
-	//log.Println(messageIDs)
+	if err := mess_rows.Err(); err != nil {
+		return err
+	}
+	// log.Println(messageIDs)
 	// Aggiornare lo stato di ricezione per ogni messaggio
 	for _, messageID := range messageIDs {
 		var exists int
-		//log.Println(messageID)
+		// log.Println(messageID)
 		err := db.c.QueryRow("SELECT COUNT(*) FROM message_read_status WHERE message_id = ? AND user_id = ?", messageID, userID).Scan(&exists)
 		if err != nil {
 			return err
@@ -192,8 +205,8 @@ func (db *appdbimpl) ReadMessages(userID int, conversationID int) error {
 func (db *appdbimpl) GetMessageReceivedStatus(messageID int, userID int) (int, error) {
 	var UserID int
 	err := db.c.QueryRow("SELECT user_id FROM message_received_status WHERE message_id = ? AND user_id = ?", messageID, userID).Scan(&UserID)
-	if err != nil {
-		if err == sql.ErrNoRows {
+	if !errors.Is(err, sql.ErrNoRows) {
+		if errors.Is(err, sql.ErrNoRows) {
 			return 0, nil // No read status found
 		}
 		return 0, err // Handle other errors
@@ -205,7 +218,7 @@ func (db *appdbimpl) GetMessageReadStatus(messageID int, userID int) (int, error
 	var UserID int
 	err := db.c.QueryRow("SELECT user_id FROM message_read_status WHERE message_id = ? AND user_id = ?", messageID, userID).Scan(&UserID)
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if errors.Is(err, sql.ErrNoRows) {
 			return 0, nil // No read status found
 		}
 		return 0, err // Handle other errors
@@ -259,6 +272,9 @@ func (db *appdbimpl) GetMessages(conversationID int, participants []string) ([]M
 			}
 		}
 		allMessages = append(allMessages, m)
+	}
+	if err := rowsM.Err(); err != nil {
+		return nil, err
 	}
 	return allMessages, nil
 }
