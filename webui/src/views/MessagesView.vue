@@ -572,7 +572,7 @@ export default {
     mounted() {
         this.refresh()
         this.getGroupParticipants(this.$route.params.conversation_id);
-        setInterval(this.refresh, 2000);
+        setInterval(this.refresh, 4000);
     }
 
 }

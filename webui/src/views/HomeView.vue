@@ -81,7 +81,7 @@ export default {
 		this.id = localStorage.getItem("token");
 		this.username = localStorage.getItem("username");
 		this.propic = localStorage.getItem("propic");
-		setInterval(this.refresh, 2000);
+		setInterval(this.refresh, 4000);
 	}
 }
 </script>

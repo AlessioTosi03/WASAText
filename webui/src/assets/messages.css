@@ -95,7 +95,7 @@
 }
 #message-input{
     position: relative;
-    width: 70%;
+    width: 50%;
     height: 40px;
 }#pic-container{
     display: flex;
