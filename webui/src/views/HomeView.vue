@@ -51,7 +51,6 @@ export default {
 		login() {
 			this.$axios.post("/session", { username: this.username })
 				.then(response => {
-					console.log(response.data);
 					if (response.data) {
 						localStorage.setItem("token", response.data.id);  // Store the user_id in localStorage
 						localStorage.setItem("username", response.data.username);

@@ -18,6 +18,7 @@ export default {
             text: "",
             messageText: "",
             file: null,
+            file2: null,
             showPopup: false, // Controls visibility of the popup
             showPopup2: false, // Controls visibility of the popup
             showPopup3: false, // Controls visibility of the popup
@@ -28,11 +29,15 @@ export default {
             myReaction: '',
             participants: [],
             allReactions: [],
+            username: localStorage.getItem("username")
 		}
 	},
 	methods: {
         onFileChange(event) {
             this.file = event.target.files[0];
+        },
+        onFileChange2(event) {
+            this.file2 = event.target.files[0];
         },
         async refresh() {
 			this.loading = true;
@@ -194,11 +199,6 @@ export default {
             }
             this.url = `${convId}`;
             const username = prompt("Enter your text:");
-            if (username !== null) {
-            console.log("User entered:", username);
-            } else {
-            console.log("User cancelled the dialog.");
-            }
             try {
                 await this.$axios.post(`/chat/${this.url}`, {username}, {
                     headers: { Authorization: `Bearer ${token}` }
@@ -272,8 +272,8 @@ export default {
             }
             this.url = `${convId}`;
             const formData = new FormData();
-            if (this.file) {
-                formData.append("photo", this.file); // Append the file
+            if (this.file2) {
+                formData.append("photo", this.file2); // Append the file
             }
             try {
                 await this.$axios.put(`/chat/${this.url}/photo`, formData, {
@@ -299,7 +299,6 @@ export default {
             }
         },
         async forwardMessage(conversation_id, message_id){
-            console.log("Forwarding message", message_id, "to conversation", conversation_id);
             this.loading = true;
             this.errormsg = null;
             const token = localStorage.getItem("token");
@@ -338,7 +337,6 @@ export default {
             }
         },
         async deleteMessage(message_id){
-            console.log("Deleting message", message_id);
             this.loading = true;
             this.errormsg = null;
             const token = localStorage.getItem("token");
@@ -433,7 +431,6 @@ export default {
                 let response = await this.$axios.get(`/chat/${convId}/messages/${message_id}/reaction`, {
                     headers: { Authorization: `Bearer ${token}` }
                 });
-                console.log(response.data);
                 this.myReaction = response.data;
                 return this.myReaction;
             } catch (e) {
@@ -452,7 +449,6 @@ export default {
             }
         },
         async uncommentMessage(message_id){
-            console.log("Uncommenting message", message_id);
             this.loading = true;
             this.errormsg = null;
             const token = localStorage.getItem("token");
@@ -489,7 +485,6 @@ export default {
             }
         },
         async getGroupParticipants(conversation_id){
-            console.log("Getting group participants for conversation", conversation_id);
             this.loading = true;
             this.errormsg = null;
             const token = localStorage.getItem("token");
@@ -509,7 +504,6 @@ export default {
                     headers: { Authorization: `Bearer ${token}` }
                 });
                 this.participants = response.data;
-                console.log(`participants: ${this.participants}`); // <-- DEBUG
                 return this.participants;
             } catch (e) {
                 if (e.response && e.response.status === 401) {
@@ -577,7 +571,6 @@ export default {
     },
     mounted() {
         this.refresh()
-        this.username = localStorage.getItem("username");
         this.getGroupParticipants(this.$route.params.conversation_id);
         setInterval(this.refresh, 2000);
     }
@@ -614,7 +607,7 @@ export default {
                         <input type="text" v-model="text" id="set-group-name" placeholder="Type new group name here">
                         <button @click="setGroupName">Set Name</button>
                         <br><br>
-                        <input type="file" ref="fileInput" @change="onFileChange" id="set-group-pic" accept="image/*">
+                        <input type="file" ref="fileInput" @change="onFileChange2" id="set-group-pic" accept="image/*">
                         <button @click="setGroupPic">Set Picture</button>
                         <br><br><br>
                         <button @click="showPopup = false">Close</button>
@@ -693,8 +686,9 @@ export default {
                             </ul>
                         </div>
                     </div>
-                    <svg v-if="m.received_status" class="feather" id="forward-svg"><use href="/feather-sprite-v4.29.0.svg#check"/></svg>
-                    <svg v-if="m.read_status" class="feather" id="forward-svg"><use href="/feather-sprite-v4.29.0.svg#check"/></svg>
+                    <svg v-if="m.received_status && m.username === username" class="feather" id="forward-svg"><use href="/feather-sprite-v4.29.0.svg#check"/></svg>
+                    <svg v-if="m.read_status && m.username === username" class="feather" style="color:limegreen" id="forward-svg"><use href="/feather-sprite-v4.29.0.svg#check"/></svg>
+
                     <p v-if="m.forwarded==1" id="forwarded-text" style="margin-left: 30%">
                         Forwarded
                     </p>

@@ -139,6 +139,20 @@ func (db *appdbimpl) CreateGroup(userID int, groupName string, photoURL string) 
 }
 
 func (db *appdbimpl) CreateChat(userID int, otherUserID int) (int, error) {
+	rows, err := db.c.Query("SELECT conversation_id FROM participant_relation WHERE user_id = ? AND conversation_id IN (SELECT conversation_id FROM participant_relation WHERE user_id = ?) AND conversation_id IN (SELECT conversation_id FROM conversations WHERE type = 'chat')", userID, otherUserID)
+	if err != nil {
+		return 0, err
+	}
+	defer rows.Close()
+	if rows.Next() {
+		// Esiste già una conversazione, non serve crearne una nuova.
+		var conversationID int
+		if err := rows.Scan(&conversationID); err != nil {
+			return 0, err
+		}
+		return conversationID, nil
+	}
+
 	conv, err := db.c.Exec("INSERT INTO conversations (type) VALUES ('chat')")
 	if err != nil {
 		return 0, err
@@ -168,7 +182,6 @@ func (db *appdbimpl) CreateChat(userID int, otherUserID int) (int, error) {
 	if err != nil {
 		return 0, err
 	}
-
 	return int(chatID), nil
 }
 

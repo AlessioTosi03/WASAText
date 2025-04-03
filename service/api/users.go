@@ -11,8 +11,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/AlessioTosi03/WASAText/service/database"
 	"errors"
+
+	"github.com/AlessioTosi03/WASAText/service/database"
 
 	"github.com/julienschmidt/httprouter"
 )
@@ -203,6 +204,8 @@ func (rt *_router) setMyPhoto(w http.ResponseWriter, r *http.Request, ps httprou
 
 	userIDStr := ps.ByName("UserID")
 	userID, _ := strconv.Atoi(userIDStr)
+	photoDir := "files"
+	photoPath = fmt.Sprintf("%s/%s", photoDir, filename)
 
 	if authID != userID {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)

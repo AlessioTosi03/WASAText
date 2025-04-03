@@ -205,7 +205,7 @@ func (db *appdbimpl) ReadMessages(userID int, conversationID int) error {
 func (db *appdbimpl) GetMessageReceivedStatus(messageID int, userID int) (int, error) {
 	var UserID int
 	err := db.c.QueryRow("SELECT user_id FROM message_received_status WHERE message_id = ? AND user_id = ?", messageID, userID).Scan(&UserID)
-	if !errors.Is(err, sql.ErrNoRows) {
+	if !errors.Is(err, nil) {
 		if errors.Is(err, sql.ErrNoRows) {
 			return 0, nil // No read status found
 		}

@@ -45,6 +45,7 @@ export default {
 			}
 			this.username = localStorage.getItem("username");
 			this.photo = localStorage.getItem("propic");
+			this.propic = localStorage.getItem('propic');
 			this.user_url = "/users/" + localStorage.getItem("token");
 			try {
 				let response = await this.$axios.get("/stream", {

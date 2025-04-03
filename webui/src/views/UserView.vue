@@ -63,7 +63,6 @@ export default {
 						"Content-Type": "multipart/form-data"
 					}
 				});
-                console.log(response.data);
                 localStorage.setItem("propic", response.data.photo_path);
 				this.$emit("set-propic");
 			} catch (e) {
